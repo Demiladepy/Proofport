@@ -2,16 +2,41 @@
   "name": "proofport",
   "version": "0.1.0",
   "private": true,
+  "engines": {
+    "node": ">=22"
+  },
   "scripts": {
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "eslint"
+    "lint": "eslint",
+    "smoke:credentials": "tsx tests/smoke/credentials.ts",
+    "smoke:wallet": "tsx tests/smoke/wallet.ts",
+    "smoke:x402": "tsx tests/smoke/x402.ts",
+    "smoke:swap": "tsx tests/smoke/swap.ts",
+    "smoke:partner": "tsx tests/smoke/partner.ts",
+    "smoke:delegation": "tsx tests/smoke/delegation.ts",
+    "smoke:agent": "tsx tests/smoke/agent.ts"
   },
   "dependencies": {
-    "next": "16.3.5",
-    "react": "19.2.8",
-    "react-dom": "19.2.8"
+    "@ai-sdk/openai": "^4.0.67",
+    "@dynamic-labs-wallet/core": "^1.1.10",
+    "@dynamic-labs-wallet/node-evm": "^1.1.10",
+    "@owf/crypto": "^0.3.1",
+    "@sd-jwt/core": "^0.20.1",
+    "@sd-jwt/sd-jwt-vc": "^0.20.1",
+    "@x402/core": "^2.26.0",
+    "@x402/evm": "^2.26.0",
+    "@x402/fetch": "^2.26.0",
+    "@x402/next": "^2.26.0",
+    "ai": "^7.0.102",
+    "dotenv": "^17.4.2",
+    "next": "^16.3.5",
+    "react": "^19.2.8",
+    "react-dom": "^19.2.8",
+    "tsx": "^4.23.13",
+    "viem": "^2.56.5",
+    "zod": "^4.6.5"
   },
   "devDependencies": {
     "@tailwindcss/postcss": "^4",

@@ -1,26 +1,296 @@
 @import "tailwindcss";
 
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
-}
-
-@theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
-}
-
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
+  --bg0: #0b0d10;
+  --bg1: #12151c;
+  --ink: #e8ecf1;
+  --muted: #8b95a8;
+  --accent: #3dffa8;
+  --accent-dim: #1f6b4a;
+  --warn: #ff6b4a;
+  --line: rgba(232, 236, 241, 0.12);
+  --glow: radial-gradient(1200px 600px at 10% -10%, #1a3d32 0%, transparent 55%),
+    radial-gradient(900px 500px at 90% 0%, #243056 0%, transparent 50%),
+    linear-gradient(180deg, #0b0d10 0%, #10141c 100%);
 }
 
 body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  margin: 0;
+  min-height: 100vh;
+  color: var(--ink);
+  background: var(--glow);
+  font-family: var(--font-dm-sans), "DM Sans", system-ui, sans-serif;
+}
+
+.pp-shell {
+  max-width: 1100px;
+  margin: 0 auto;
+  padding: 2rem 1.25rem 3rem;
+}
+
+.pp-header {
+  display: flex;
+  justify-content: space-between;
+  gap: 1.5rem;
+  align-items: flex-start;
+  margin-bottom: 2rem;
+  animation: rise 0.7s ease-out both;
+}
+
+.pp-eyebrow {
+  text-transform: uppercase;
+  letter-spacing: 0.14em;
+  font-size: 0.7rem;
+  color: var(--muted);
+  margin: 0 0 0.4rem;
+}
+
+.pp-brand {
+  font-family: var(--font-instrument), "Instrument Serif", Georgia, serif;
+  font-size: clamp(2.6rem, 6vw, 4rem);
+  font-weight: 400;
+  margin: 0;
+  letter-spacing: -0.02em;
+}
+
+.pp-tagline {
+  max-width: 34rem;
+  color: var(--muted);
+  margin: 0.6rem 0 0;
+  line-height: 1.45;
+}
+
+.pp-auth {
+  display: flex;
+  gap: 0.5rem;
+  align-items: center;
+  flex-wrap: wrap;
+}
+
+.pp-pill {
+  border: 1px solid var(--line);
+  padding: 0.35rem 0.7rem;
+  font-size: 0.75rem;
+}
+
+.pp-pill-on {
+  color: var(--accent);
+  border-color: var(--accent-dim);
+}
+
+.pp-pill-off {
+  color: var(--warn);
+}
+
+.pp-grid {
+  display: grid;
+  grid-template-columns: 1.1fr 0.9fr;
+  gap: 1rem;
+}
+
+@media (max-width: 860px) {
+  .pp-grid {
+    grid-template-columns: 1fr;
+  }
+  .pp-header {
+    flex-direction: column;
+  }
+}
+
+.pp-panel {
+  background: color-mix(in srgb, var(--bg1) 88%, transparent);
+  border: 1px solid var(--line);
+  padding: 1.1rem 1.2rem 1.25rem;
+  animation: rise 0.8s ease-out both;
+}
+
+.pp-panel:nth-child(2) {
+  animation-delay: 0.05s;
+}
+.pp-panel:nth-child(3) {
+  animation-delay: 0.1s;
+}
+.pp-panel:nth-child(4) {
+  animation-delay: 0.15s;
+}
+
+.pp-panel h2 {
+  margin: 0 0 0.75rem;
+  font-size: 0.95rem;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--muted);
+  font-weight: 600;
+}
+
+.pp-chat textarea {
+  width: 100%;
+  resize: vertical;
+  background: #0a0c10;
+  border: 1px solid var(--line);
+  color: var(--ink);
+  padding: 0.75rem;
+  font: inherit;
+  margin-bottom: 0.75rem;
+}
+
+.pp-btn {
+  border: 1px solid var(--line);
+  background: transparent;
+  color: var(--ink);
+  padding: 0.55rem 0.9rem;
+  font: inherit;
+  cursor: pointer;
+  transition: transform 0.15s ease, border-color 0.15s ease;
+}
+
+.pp-btn:hover {
+  transform: translateY(-1px);
+}
+
+.pp-btn.primary {
+  background: var(--accent);
+  color: #04140e;
+  border-color: var(--accent);
+  font-weight: 600;
+}
+
+.pp-btn.danger {
+  border-color: color-mix(in srgb, var(--warn) 50%, transparent);
+  color: var(--warn);
+}
+
+.pp-btn.ghost {
+  color: var(--muted);
+}
+
+.pp-btn:disabled {
+  opacity: 0.6;
+  cursor: wait;
+}
+
+.pp-steps {
+  margin: 0;
+  padding-left: 1.1rem;
+  line-height: 1.8;
+}
+
+.pp-steps code {
+  color: var(--accent);
+}
+
+.pp-claims {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: 0.45rem;
+}
+
+.claim {
+  display: flex;
+  justify-content: space-between;
+  padding: 0.55rem 0.7rem;
+  border: 1px solid var(--line);
+  transition: background 0.25s ease, border-color 0.25s ease;
+}
+
+.claim-open {
+  border-color: var(--accent-dim);
+  background: color-mix(in srgb, var(--accent) 8%, transparent);
+  animation: pulseGlow 1.2s ease-out;
+}
+
+.claim-locked .claim-name {
+  text-decoration: line-through;
+  color: var(--muted);
+}
+
+.claim-locked .claim-state {
+  color: var(--muted);
+  font-size: 0.8rem;
+}
+
+.claim-open .claim-state {
+  color: var(--accent);
+  font-family: ui-monospace, monospace;
+  font-size: 0.8rem;
+}
+
+.pp-exposure {
+  margin-top: 0.9rem;
+  padding-top: 0.8rem;
+  border-top: 1px solid var(--line);
+  color: var(--muted);
+  font-size: 0.9rem;
+}
+
+.pp-exposure strong {
+  color: var(--ink);
+}
+
+.pp-kv {
+  display: grid;
+  gap: 1rem;
+}
+
+.pp-kv > div {
+  display: grid;
+  gap: 0.25rem;
+}
+
+.pp-kv span {
+  color: var(--muted);
+  font-size: 0.8rem;
+}
+
+.pp-kv strong.ok {
+  color: var(--accent);
+}
+
+.pp-kv a {
+  color: var(--accent);
+}
+
+.muted {
+  color: var(--muted);
+  font-size: 0.85rem;
+}
+
+.pp-error {
+  color: var(--warn);
+}
+
+.pp-agent-text {
+  margin-top: 0.75rem;
+  line-height: 1.45;
+}
+
+.pp-footer {
+  margin-top: 2rem;
+  color: var(--muted);
+  font-size: 0.85rem;
+  border-top: 1px solid var(--line);
+  padding-top: 1rem;
+  animation: rise 1s ease-out both;
+}
+
+@keyframes rise {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+@keyframes pulseGlow {
+  from {
+    box-shadow: 0 0 0 0 color-mix(in srgb, var(--accent) 35%, transparent);
+  }
+  to {
+    box-shadow: 0 0 0 12px transparent;
+  }
 }
