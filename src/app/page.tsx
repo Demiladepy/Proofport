@@ -53,23 +53,23 @@ function HeroArtLeft() {
   return (
     <div className="pp-hero-art" aria-hidden="true">
       <span
-        className="pp-mascot"
+        className="pp-mascot pp-mascot-face"
         style={{
-          left: "8%",
-          top: "12%",
-          width: 88,
-          height: 88,
+          left: "6%",
+          top: "8%",
+          width: 96,
+          height: 96,
           borderRadius: 72,
           background: "#64c6ff",
         }}
       />
       <span
-        className="pp-mascot"
+        className="pp-mascot pp-mascot-face"
         style={{
-          left: "42%",
-          top: "48%",
-          width: 72,
-          height: 64,
+          left: "38%",
+          top: "46%",
+          width: 78,
+          height: 70,
           borderRadius: 40,
           background: "#00c978",
         }}
@@ -77,11 +77,11 @@ function HeroArtLeft() {
       <span
         className="pp-confetti"
         style={{
-          left: "58%",
-          top: "18%",
-          width: 22,
-          height: 22,
-          borderRadius: 4,
+          left: "62%",
+          top: "14%",
+          width: 24,
+          height: 24,
+          borderRadius: 6,
           background: "#ffcd6c",
           transform: "rotate(18deg)",
         }}
@@ -89,8 +89,8 @@ function HeroArtLeft() {
       <span
         className="pp-confetti"
         style={{
-          left: "18%",
-          top: "68%",
+          left: "14%",
+          top: "72%",
           width: 18,
           height: 18,
           borderRadius: 999,
@@ -100,9 +100,9 @@ function HeroArtLeft() {
       <span
         className="pp-confetti"
         style={{
-          left: "70%",
-          top: "72%",
-          width: 28,
+          left: "72%",
+          top: "68%",
+          width: 30,
           height: 14,
           borderRadius: 999,
           background: "#ff58ae",
@@ -118,26 +118,26 @@ function HeroArtRight() {
       <span
         className="pp-mascot"
         style={{
-          right: "10%",
-          top: "20%",
+          right: "12%",
+          top: "6%",
           left: "auto",
-          width: 80,
-          height: 80,
-          borderRadius: 20,
+          width: 92,
+          height: 84,
+          borderRadius: 18,
           background: "#ffcd6c",
-          clipPath: "polygon(50% 0%, 100% 100%, 0% 100%)",
+          clipPath: "polygon(50% 4%, 96% 92%, 4% 92%)",
           border: "none",
           boxShadow: "inset 0 0 0 1.5px #343433",
         }}
       />
       <span
-        className="pp-mascot"
+        className="pp-mascot pp-mascot-face"
         style={{
-          right: "38%",
-          top: "52%",
+          right: "36%",
+          top: "48%",
           left: "auto",
-          width: 70,
-          height: 70,
+          width: 76,
+          height: 76,
           borderRadius: 56,
           background: "#ff58ae",
         }}
@@ -145,11 +145,11 @@ function HeroArtRight() {
       <span
         className="pp-confetti"
         style={{
-          right: "22%",
-          top: "12%",
+          right: "18%",
+          top: "8%",
           left: "auto",
-          width: 20,
-          height: 20,
+          width: 22,
+          height: 22,
           borderRadius: 4,
           background: "#9f4fff",
           transform: "rotate(-12deg)",
@@ -158,8 +158,8 @@ function HeroArtRight() {
       <span
         className="pp-confetti"
         style={{
-          right: "55%",
-          top: "28%",
+          right: "58%",
+          top: "24%",
           left: "auto",
           width: 16,
           height: 16,
@@ -170,10 +170,10 @@ function HeroArtRight() {
       <span
         className="pp-confetti"
         style={{
-          right: "8%",
-          top: "68%",
+          right: "6%",
+          top: "70%",
           left: "auto",
-          width: 26,
+          width: 28,
           height: 14,
           borderRadius: 999,
           background: "#e5d5c3",
@@ -311,7 +311,7 @@ export default function Home() {
           <div className="pp-hero-ctas">
             <button
               type="button"
-              className="pp-btn-dark"
+              className="pp-btn-dark pp-btn-lg"
               disabled={running}
               onClick={() => {
                 inputRef.current?.scrollIntoView({ behavior: "smooth", block: "center" });
@@ -347,7 +347,7 @@ export default function Home() {
         <div className="pp-ask-actions">
           <button
             type="button"
-            className="pp-btn-dark"
+            className="pp-btn-dark pp-btn-lg"
             disabled={running}
             onClick={() => void run()}
           >
@@ -498,7 +498,7 @@ export default function Home() {
           </div>
         </section>
 
-        <section className="pp-module">
+        <section className="pp-module pp-module-plan">
           <h2 className="pp-module-title">Agent plan</h2>
           {toolCalls.length ? (
             <ol className="pp-rows">
@@ -521,7 +521,7 @@ export default function Home() {
           )}
         </section>
 
-        <section className="pp-module">
+        <section className="pp-module pp-module-settle">
           <h2 className="pp-module-title">Settlement</h2>
           <div className="pp-kv">
             <div>
