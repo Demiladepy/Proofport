@@ -1,11 +1,17 @@
 import type { Metadata } from "next";
-import { Space_Grotesk } from "next/font/google";
+import { JetBrains_Mono, Sora } from "next/font/google";
 import "./globals.css";
 
-const sui = Space_Grotesk({
+const sora = Sora({
   subsets: ["latin"],
-  weight: ["300", "400", "500", "700"],
-  variable: "--font-space-grotesk",
+  weight: ["400", "500", "600", "700"],
+  variable: "--font-sora",
+});
+
+const mono = JetBrains_Mono({
+  subsets: ["latin"],
+  weight: ["400", "500"],
+  variable: "--font-mono",
 });
 
 export const metadata: Metadata = {
@@ -16,7 +22,7 @@ export const metadata: Metadata = {
 
 export default function RootLayout({ children }: LayoutProps<"/">) {
   return (
-    <html lang="en" className={`${sui.variable} h-full`}>
+    <html lang="en" className={`${sora.variable} ${mono.variable} h-full`}>
       <body className="min-h-full">{children}</body>
     </html>
   );

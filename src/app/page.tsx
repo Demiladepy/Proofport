@@ -51,7 +51,6 @@ export default function Home() {
         disclosed?: string[];
         withheld?: string[];
         disclosedClaims?: Record<string, unknown>;
-        presentation?: string;
       }
     | undefined;
 
@@ -61,7 +60,7 @@ export default function Home() {
 
   const payOut = result?.toolCalls?.find((t) => t.toolName === "pay_x402")
     ?.output as
-    | { paidVia?: string; message?: string; paymentEvidence?: unknown }
+    | { paidVia?: string; message?: string }
     | undefined;
 
   const handoffOut = result?.toolCalls?.find((t) => t.toolName === "request_handoff")
@@ -129,9 +128,9 @@ export default function Home() {
             className="pp-status"
             data-on={delegation?.granted ? "true" : "false"}
           >
-            {delegation?.granted ? "Authority granted" : "Authority revoked"}
+            {delegation?.granted ? "Authority on" : "Revoked"}
           </span>
-          <button type="button" className="pp-btn-ghost muted" onClick={grant}>
+          <button type="button" className="pp-btn-ghost" onClick={grant}>
             Grant
           </button>
           <button type="button" className="pp-btn-ghost danger" onClick={revoke}>
@@ -144,8 +143,8 @@ export default function Home() {
         <p className="pp-eyebrow">Selective disclosure · agent cash-out</p>
         <h1 className="pp-brand">Proofport</h1>
         <p className="pp-tagline">
-          Prove once, privately. Agent cash-out to the edge of the regulated
-          rail — no fiat in this app.
+          Prove once, privately. The agent presents only what each step needs —
+          then stops at the licensed partner edge. No fiat moves here.
         </p>
       </header>
 
@@ -174,38 +173,18 @@ export default function Home() {
           >
             {running ? "Working…" : "Run cash-out agent"}
           </button>
+          <p className="pp-hint">⌘/Ctrl + Enter</p>
         </div>
         {error && <p className="pp-error">{error}</p>}
         {result?.text && <p className="pp-agent-text">{result.text}</p>}
       </section>
 
       <main className="pp-modules">
-        <section className="pp-module">
-          <h2 className="pp-module-title">Agent plan</h2>
-          {toolCalls.length ? (
-            <ol className="pp-rows">
-              {toolCalls.map((t, i) => (
-                <li key={`${t.toolName}-${i}`} className="pp-row">
-                  <div className="pp-row-main">
-                    <span className="pp-row-index">
-                      {String(i + 1).padStart(2, "0")}
-                    </span>
-                    <span className="pp-row-name">{t.toolName}</span>
-                  </div>
-                  <span className="pp-row-meta">Tool</span>
-                </li>
-              ))}
-            </ol>
-          ) : (
-            <p className="pp-row-empty">Waiting for a run…</p>
-          )}
-        </section>
-
-        <section className="pp-module">
-          <h2 className="pp-module-title">Disclosure</h2>
+        <section className="pp-module pp-module-disclosure">
+          <h2 className="pp-module-title">Selective disclosure</h2>
           <p className="pp-module-lead">
-            Only lit claims leave the device. Locked claims stay
-            cryptographically absent from the presentation.
+            Lit claims leave the device. Struck claims stay cryptographically
+            absent from the presentation — not just hidden in the UI.
           </p>
           <ul className="pp-rows">
             {ALL_IDENTITY.map((claim) => {
@@ -238,6 +217,26 @@ export default function Home() {
         </section>
 
         <section className="pp-module">
+          <h2 className="pp-module-title">Agent plan</h2>
+          {toolCalls.length ? (
+            <ol className="pp-rows">
+              {toolCalls.map((t, i) => (
+                <li key={`${t.toolName}-${i}`} className="pp-row">
+                  <div className="pp-row-main">
+                    <span className="pp-row-index">
+                      {String(i + 1).padStart(2, "0")}
+                    </span>
+                    <span className="pp-row-name">{t.toolName}</span>
+                  </div>
+                </li>
+              ))}
+            </ol>
+          ) : (
+            <p className="pp-row-empty">Run the agent to see the plan.</p>
+          )}
+        </section>
+
+        <section className="pp-module">
           <h2 className="pp-module-title">Settlement</h2>
           <div className="pp-kv">
             <div>
@@ -253,7 +252,7 @@ export default function Home() {
                     tx
                   </a>
                 ) : (
-                  swapOut?.txHash ?? ""
+                  (swapOut?.txHash ?? "")
                 )}
               </strong>
               {swapOut?.note && <p className="muted">{swapOut.note}</p>}
@@ -265,14 +264,12 @@ export default function Home() {
               </strong>
             </div>
             <div>
-              <span>Licensed partner · no fiat</span>
+              <span>Partner hand-off · no fiat</span>
               <strong>
-                {handoffOut?.status ?? "—"}{" "}
-                {handoffOut?.reference ? `(${handoffOut.reference})` : ""}
+                {handoffOut?.status ?? "—"}
+                {handoffOut?.reference ? ` · ${handoffOut.reference}` : ""}
               </strong>
-              {handoffOut?.note && (
-                <p className="muted">{handoffOut.note}</p>
-              )}
+              {handoffOut?.note && <p className="muted">{handoffOut.note}</p>}
             </div>
           </div>
         </section>
@@ -280,7 +277,7 @@ export default function Home() {
 
       <footer className="pp-footer">
         Emerging markets are where agentic finance is 10× — Nigeria is the proof,
-        not the pitch. See MOCKS.md for live vs simulated boundaries.
+        not the pitch. Live vs simulated boundaries: MOCKS.md.
       </footer>
     </div>
   );
