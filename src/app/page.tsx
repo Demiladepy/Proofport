@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 
 type ToolCall = { toolName: string; input: unknown; output: unknown };
 
@@ -34,6 +34,7 @@ export default function Home() {
   const [result, setResult] = useState<AgentResponse | null>(null);
   const [delegation, setDelegation] = useState<Delegation | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const inputRef = useRef<HTMLTextAreaElement>(null);
 
   const refreshDelegation = useCallback(async () => {
     const res = await fetch("/api/delegation");
@@ -68,7 +69,8 @@ export default function Home() {
     | { status?: string; note?: string; reference?: string }
     | undefined;
 
-  async function run() {
+  const run = useCallback(async () => {
+    if (running) return;
     setRunning(true);
     setError(null);
     setResult(null);
@@ -91,7 +93,24 @@ export default function Home() {
     } finally {
       setRunning(false);
     }
-  }
+  }, [message, running, refreshDelegation]);
+
+  useEffect(() => {
+    function onKeyDown(e: KeyboardEvent) {
+      const meta = e.metaKey || e.ctrlKey;
+      if (meta && e.key.toLowerCase() === "k") {
+        e.preventDefault();
+        inputRef.current?.focus();
+        return;
+      }
+      if (meta && e.key === "Enter") {
+        e.preventDefault();
+        void run();
+      }
+    }
+    window.addEventListener("keydown", onKeyDown);
+    return () => window.removeEventListener("keydown", onKeyDown);
+  }, [run]);
 
   async function revoke() {
     const res = await fetch("/api/delegation", {
@@ -113,24 +132,27 @@ export default function Home() {
 
   const disclosed = new Set(presentOut?.disclosed ?? []);
   const toolCalls = result?.toolCalls ?? [];
+  const isMac =
+    typeof navigator !== "undefined" &&
+    /Mac|iPhone|iPad/.test(navigator.platform);
 
   return (
     <div className="pp-shell">
-      <header className="pp-header">
-        <div className="pp-header-brand">
-          <p className="pp-eyebrow">Runtime · Bankr × Propaganda</p>
-          <h1 className="pp-brand">Proofport</h1>
-          <p className="pp-tagline">
-            Prove once, privately. Agent cash-out to the edge of the regulated
-            rail — no fiat in this app.
-          </p>
+      <nav className="pp-nav" aria-label="Proofport">
+        <div className="pp-nav-brand">
+          <div className="pp-nav-mark" aria-hidden="true" />
+          <div>
+            <p className="pp-nav-name">Proofport</p>
+            <p className="pp-nav-meta">Runtime · Bankr × Propaganda</p>
+          </div>
         </div>
-        <div className="pp-auth">
+        <div className="pp-nav-actions">
           <span
             className={
               delegation?.granted ? "pp-pill pp-pill-on" : "pp-pill pp-pill-off"
             }
           >
+            <span className="pp-pill-dot" aria-hidden="true" />
             {delegation?.granted ? "Authority granted" : "Authority revoked"}
           </span>
           <button type="button" className="pp-btn ghost" onClick={grant}>
@@ -140,106 +162,206 @@ export default function Home() {
             Revoke
           </button>
         </div>
+      </nav>
+
+      <header className="pp-hero">
+        <p className="pp-eyebrow">Selective disclosure · agent cash-out</p>
+        <h1 className="pp-brand">Proofport</h1>
+        <p className="pp-tagline">
+          Prove once, privately. Agent cash-out to the edge of the regulated
+          rail — no fiat in this app.
+        </p>
       </header>
 
-      <main className="pp-grid">
-        <section className="pp-panel pp-chat">
-          <h2>Ask</h2>
+      <section className="pp-palette" aria-label="Command palette">
+        <div className="pp-palette-input-row">
+          <span className="pp-palette-prompt" aria-hidden="true">
+            ›
+          </span>
           <textarea
+            ref={inputRef}
             value={message}
             onChange={(e) => setMessage(e.target.value)}
-            rows={3}
-            placeholder="Describe the cash-out…"
+            rows={2}
+            placeholder="Ask the cash-out agent…"
             aria-label="Agent prompt"
+            onKeyDown={(e) => {
+              if ((e.metaKey || e.ctrlKey) && e.key === "Enter") {
+                e.preventDefault();
+                void run();
+              }
+            }}
           />
-          <div className="pp-chat-actions">
+        </div>
+        <div className="pp-palette-footer">
+          <div className="pp-palette-hints">
+            <span className="pp-palette-hint">
+              <kbd className="pp-kbd pp-kbd-sm">{isMac ? "⌘" : "Ctrl"}</kbd>
+              <kbd className="pp-kbd pp-kbd-sm">K</kbd>
+              Focus
+            </span>
+            <span className="pp-palette-hint">
+              <kbd className="pp-kbd pp-kbd-sm">{isMac ? "⌘" : "Ctrl"}</kbd>
+              <kbd className="pp-kbd pp-kbd-sm">↵</kbd>
+              Run
+            </span>
+          </div>
+          <div className="pp-palette-actions">
             <button
               type="button"
               className="pp-btn primary"
               disabled={running}
-              onClick={run}
+              onClick={() => void run()}
             >
               {running ? "Agent working…" : "Run cash-out agent"}
+              {!running && (
+                <kbd className="pp-kbd pp-kbd-sm" aria-hidden="true">
+                  ↵
+                </kbd>
+              )}
             </button>
           </div>
-          {error && <p className="pp-error">{error}</p>}
-          {result?.text && <p className="pp-agent-text">{result.text}</p>}
-        </section>
+        </div>
+        {error && <p className="pp-error">{error}</p>}
+        {result?.text && <p className="pp-agent-text">{result.text}</p>}
+      </section>
 
-        <section className="pp-panel">
-          <h2>Agent plan</h2>
-          <ol className="pp-steps">
-            {toolCalls.map((t, i) => (
-              <li key={`${t.toolName}-${i}`}>
-                <span className="step-index">{String(i + 1).padStart(2, "0")}</span>
-                <code>{t.toolName}</code>
-              </li>
-            ))}
-            {!toolCalls.length && (
-              <li className="muted">Waiting for a run…</li>
+      <main className="pp-grid">
+        <section className="pp-window">
+          <div className="pp-window-chrome">
+            <div className="pp-window-dots" aria-hidden="true">
+              <span />
+              <span />
+              <span />
+            </div>
+            <h2 className="pp-window-title">Agent plan</h2>
+            <span className="pp-kbd pp-kbd-sm">tools</span>
+          </div>
+          <div className="pp-window-body">
+            {toolCalls.length ? (
+              <ol className="pp-rows">
+                {toolCalls.map((t, i) => (
+                  <li
+                    key={`${t.toolName}-${i}`}
+                    className="pp-row pp-row-enter"
+                    style={{ animationDelay: `${i * 0.04}s` }}
+                  >
+                    <div className="pp-row-main">
+                      <span className="pp-row-index">
+                        {String(i + 1).padStart(2, "0")}
+                      </span>
+                      <code>{t.toolName}</code>
+                    </div>
+                    <span className="pp-row-meta">
+                      <kbd className="pp-kbd pp-kbd-sm">↵</kbd>
+                    </span>
+                  </li>
+                ))}
+              </ol>
+            ) : (
+              <p className="pp-row-empty">Waiting for a run…</p>
             )}
-          </ol>
-        </section>
-
-        <section className="pp-panel pp-viz">
-          <h2>Selective disclosure</h2>
-          <p className="muted">
-            Only lit claims leave the device. Locked claims stay
-            cryptographically absent from the presentation.
-          </p>
-          <ul className="pp-claims">
-            {ALL_IDENTITY.map((claim) => {
-              const open = disclosed.has(claim);
-              return (
-                <li
-                  key={claim}
-                  className={open ? "claim claim-open" : "claim claim-locked"}
-                >
-                  <span className="claim-name">{claim}</span>
-                  <span className="claim-state">
-                    {open
-                      ? String(presentOut?.disclosedClaims?.[claim] ?? "revealed")
-                      : "locked"}
-                  </span>
-                </li>
-              );
-            })}
-          </ul>
-          <div className="pp-exposure">
-            Identity exposure: <strong>full ID never left your device</strong>
           </div>
         </section>
 
-        <section className="pp-panel">
-          <h2>On-chain & payments</h2>
-          <div className="pp-kv">
-            <div>
-              <span>Swap</span>
+        <section className="pp-window">
+          <div className="pp-window-chrome">
+            <div className="pp-window-dots" aria-hidden="true">
+              <span />
+              <span />
+              <span />
+            </div>
+            <h2 className="pp-window-title">Selective disclosure</h2>
+            <span className="pp-kbd pp-kbd-sm">sd-jwt</span>
+          </div>
+          <div className="pp-window-body">
+            <p className="muted">
+              Only lit claims leave the device. Locked claims stay
+              cryptographically absent.
+            </p>
+            <ul className="pp-rows">
+              {ALL_IDENTITY.map((claim) => {
+                const open = disclosed.has(claim);
+                return (
+                  <li
+                    key={claim}
+                    className={
+                      open
+                        ? "pp-row pp-row-open"
+                        : "pp-row pp-row-locked"
+                    }
+                  >
+                    <div className="pp-row-main">
+                      <span className="pp-row-code">{claim}</span>
+                    </div>
+                    <span className="pp-row-meta">
+                      {open
+                        ? String(
+                            presentOut?.disclosedClaims?.[claim] ?? "revealed",
+                          )
+                        : "locked"}
+                    </span>
+                  </li>
+                );
+              })}
+            </ul>
+            <div className="pp-exposure">
+              Identity exposure:{" "}
               <strong>
-                {swapOut?.provider ?? "—"}{" "}
-                {swapOut?.explorerUrl ? (
-                  <a href={swapOut.explorerUrl} target="_blank" rel="noreferrer">
-                    tx
-                  </a>
-                ) : (
-                  swapOut?.txHash ?? ""
+                full ID never left your device
+              </strong>
+              {" · "}
+              <span className="accent">minimal present</span>
+            </div>
+          </div>
+        </section>
+
+        <section className="pp-window pp-window-wide">
+          <div className="pp-window-chrome">
+            <div className="pp-window-dots" aria-hidden="true">
+              <span />
+              <span />
+              <span />
+            </div>
+            <h2 className="pp-window-title">On-chain & payments</h2>
+            <span className="pp-kbd pp-kbd-sm">x402</span>
+          </div>
+          <div className="pp-window-body">
+            <div className="pp-kv pp-kv-triple">
+              <div>
+                <span>Swap</span>
+                <strong>
+                  {swapOut?.provider ?? "—"}{" "}
+                  {swapOut?.explorerUrl ? (
+                    <a
+                      href={swapOut.explorerUrl}
+                      target="_blank"
+                      rel="noreferrer"
+                    >
+                      tx
+                    </a>
+                  ) : (
+                    swapOut?.txHash ?? ""
+                  )}
+                </strong>
+                {swapOut?.note && <p className="muted">{swapOut.note}</p>}
+              </div>
+              <div>
+                <span>x402 self-funding</span>
+                <strong className={payOut?.paidVia === "x402" ? "ok" : ""}>
+                  {payOut?.message ?? "—"}
+                </strong>
+              </div>
+              <div>
+                <span>Licensed partner (mock — no fiat)</span>
+                <strong>
+                  {handoffOut?.status ?? "—"}{" "}
+                  {handoffOut?.reference ? `(${handoffOut.reference})` : ""}
+                </strong>
+                {handoffOut?.note && (
+                  <p className="muted">{handoffOut.note}</p>
                 )}
-              </strong>
-              {swapOut?.note && <p className="muted">{swapOut.note}</p>}
-            </div>
-            <div>
-              <span>x402 self-funding</span>
-              <strong className={payOut?.paidVia === "x402" ? "ok" : ""}>
-                {payOut?.message ?? "—"}
-              </strong>
-            </div>
-            <div>
-              <span>Licensed partner (mock — no fiat)</span>
-              <strong>
-                {handoffOut?.status ?? "—"}{" "}
-                {handoffOut?.reference ? `(${handoffOut.reference})` : ""}
-              </strong>
-              {handoffOut?.note && <p className="muted">{handoffOut.note}</p>}
+              </div>
             </div>
           </div>
         </section>

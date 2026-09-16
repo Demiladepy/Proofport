@@ -1,5 +1,10 @@
 import type { Metadata } from "next";
-import { Instrument_Serif, Inter, JetBrains_Mono } from "next/font/google";
+import {
+  Geist_Mono,
+  Instrument_Serif,
+  Inter,
+  JetBrains_Mono,
+} from "next/font/google";
 import "./globals.css";
 
 const inter = Inter({
@@ -18,6 +23,11 @@ const jetbrains = JetBrains_Mono({
   variable: "--font-jetbrains",
 });
 
+const geistMono = Geist_Mono({
+  subsets: ["latin"],
+  variable: "--font-geist-mono",
+});
+
 export const metadata: Metadata = {
   title: "Proofport",
   description:
@@ -28,7 +38,7 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
   return (
     <html
       lang="en"
-      className={`${inter.variable} ${instrument.variable} ${jetbrains.variable} h-full`}
+      className={`${inter.variable} ${instrument.variable} ${jetbrains.variable} ${geistMono.variable} h-full`}
     >
       <body className="min-h-full">{children}</body>
     </html>
