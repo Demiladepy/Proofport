@@ -1,23 +1,29 @@
 import type { Metadata } from "next";
-import { Space_Grotesk } from "next/font/google";
+import { Barlow_Condensed, Inter } from "next/font/google";
 import "./globals.css";
 
-const spaceGrotesk = Space_Grotesk({
+const display = Barlow_Condensed({
   subsets: ["latin"],
-  weight: ["400", "700"],
-  variable: "--font-space",
+  weight: ["500"],
+  variable: "--font-display",
+});
+
+const inter = Inter({
+  subsets: ["latin"],
+  weight: ["400", "500", "600"],
+  variable: "--font-sans",
 });
 
 export const metadata: Metadata = {
   title: "Proofport",
   description:
-    "Onchain credit & reputation rail — two bounded agents, selective disclosure, PII-free attestation.",
+    "Onchain credit & reputation rail — selective disclosure, bounded agents, PII-free attestation.",
 };
 
 export default function RootLayout({ children }: LayoutProps<"/">) {
   return (
-    <html lang="en" className={`${spaceGrotesk.variable} h-full`}>
-      <body className="min-h-full font-sans antialiased">{children}</body>
+    <html lang="en" className={`${display.variable} ${inter.variable} h-full`}>
+      <body className="min-h-full antialiased">{children}</body>
     </html>
   );
 }
