@@ -1,7 +1,11 @@
 import "dotenv/config";
 import { runAgent } from "../../src/agent";
+import { grantDelegation } from "../../src/delegation";
 
 async function main() {
+  grantDelegation({ mode: "app_level_fallback" });
+  process.env.SWAP_PROVIDER = process.env.SWAP_PROVIDER ?? "mock";
+
   const input = "cash out my reward to Zenith";
   const result = await runAgent(input);
 
@@ -16,6 +20,7 @@ async function main() {
     input,
     mode: result.mode,
     toolSequence: names,
+    capabilityBlocks: result.capabilityBlocks.length,
     present_proof: present
       ? {
           input: present.input,
@@ -25,6 +30,7 @@ async function main() {
       : null,
     hasSwap: names.includes("swap"),
     hasPay: names.includes("pay_x402"),
+    hasAttestation: names.includes("write_attestation"),
     hasHandoff: names.includes("request_handoff"),
     minimalDisclosure:
       Array.isArray(presentOut?.disclosed) &&
@@ -42,9 +48,13 @@ async function main() {
     names.indexOf("pay_x402") > names.indexOf("swap") &&
     names.indexOf("request_handoff") > names.indexOf("pay_x402");
 
-  if (!report.minimalDisclosure || !orderOk) {
+  if (
+    !report.minimalDisclosure ||
+    !orderOk ||
+    result.capabilityBlocks.length < 2
+  ) {
     process.exitCode = 1;
-    throw new Error("Phase 2 gate failed: minimal disclosure or sequence incorrect");
+    throw new Error("Agent smoke failed: disclosure, sequence, or capability");
   }
 }
 

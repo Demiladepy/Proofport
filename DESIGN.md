@@ -39,6 +39,8 @@ spacing:
 
 Applied to the Proofport agent console. Source tokens above; implementation in `src/app/globals.css`, font in `src/app/layout.tsx` (Space Grotesk as Sui substitute).
 
+**Status:** Console UI aligned to this lock (void canvas, crimson CTA-only, transparent modules, monumental brand type). Single route `/` — all demo surfaces live on the agent console.
+
 **Overview**
 Black-cathedral design: pure void canvas, one crimson pulse, typography so large it functions as architecture. Almost entirely achromatic — ash for body, frost for display — with crimson only on the single primary action.
 

@@ -2,12 +2,27 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 
-type ToolCall = { toolName: string; input: unknown; output: unknown };
+type ToolCall = {
+  toolName: string;
+  agent?: string;
+  input: unknown;
+  output: unknown;
+};
 
 type AgentResponse = {
   mode?: string;
   text?: string;
   toolCalls?: ToolCall[];
+  capabilityBlocks?: ToolCall[];
+  proofVerified?: boolean;
+  reputation?: {
+    txHash?: string;
+    explorerUrl?: string;
+    subject?: string;
+    kind?: string;
+    evidenceHash?: string;
+    piiFields?: string[];
+  };
   error?: string;
 };
 
@@ -67,6 +82,9 @@ export default function Home() {
     ?.output as
     | { status?: string; note?: string; reference?: string }
     | undefined;
+
+  const capabilityBlocks = result?.capabilityBlocks ?? [];
+  const reputation = result?.reputation;
 
   const run = useCallback(async () => {
     if (running) return;
@@ -140,11 +158,13 @@ export default function Home() {
       </nav>
 
       <header className="pp-hero">
-        <p className="pp-eyebrow">Selective disclosure · agent cash-out</p>
+        <p className="pp-eyebrow">
+          Credit &amp; reputation rail · cash-out wedge
+        </p>
         <h1 className="pp-brand">Proofport</h1>
         <p className="pp-tagline">
-          Prove once, privately. The agent presents only what each step needs —
-          then stops at the licensed partner edge. No fiat moves here.
+          Proof presents. Execution moves on a boolean. Reputation attests —
+          hashes only, never PII.
         </p>
       </header>
 
@@ -171,9 +191,9 @@ export default function Home() {
             disabled={running}
             onClick={() => void run()}
           >
-            {running ? "Working…" : "Run cash-out agent"}
+            {running ? "Working…" : "Run credit-rail demo"}
           </button>
-          <p className="pp-hint">⌘/Ctrl + Enter</p>
+          <p className="pp-hint">⌘ / Ctrl + Enter</p>
         </div>
         {error && <p className="pp-error">{error}</p>}
         {result?.text && <p className="pp-agent-text">{result.text}</p>}
@@ -184,7 +204,7 @@ export default function Home() {
           <h2 className="pp-module-title">Selective disclosure</h2>
           <p className="pp-module-lead">
             Lit claims leave the device. Struck claims stay cryptographically
-            absent from the presentation — not just hidden in the UI.
+            absent — not just hidden in the UI.
           </p>
           <ul className="pp-rows">
             {ALL_IDENTITY.map((claim) => {
@@ -217,6 +237,81 @@ export default function Home() {
         </section>
 
         <section className="pp-module">
+          <h2 className="pp-module-title">Capability block</h2>
+          <p className="pp-module-lead">
+            Hard denials at the tool boundary — not a prompt suggestion.
+          </p>
+          {capabilityBlocks.length ? (
+            <ul className="pp-rows">
+              {capabilityBlocks.map((b, i) => {
+                const out = b.output as { error?: string };
+                return (
+                  <li key={`${b.toolName}-${i}`} className="pp-row pp-row-deny">
+                    <div className="pp-row-main">
+                      <span className="pp-row-name">
+                        {b.agent ?? "?"}-agent · {b.toolName}
+                      </span>
+                    </div>
+                    <span className="pp-row-meta">
+                      {out.error ?? "capability denied"}
+                    </span>
+                  </li>
+                );
+              })}
+            </ul>
+          ) : (
+            <p className="pp-row-empty">
+              Run to show proof denied funds &amp; execution denied credential
+              reads.
+            </p>
+          )}
+        </section>
+
+        <section className="pp-module">
+          <h2 className="pp-module-title">Reputation earned</h2>
+          <p className="pp-module-lead">
+            Portable, PII-free attestation — subject · kind · evidence hash
+            only.
+          </p>
+          <div className="pp-kv">
+            <div>
+              <span>Attestation tx</span>
+              <strong>
+                {reputation?.explorerUrl ? (
+                  <a
+                    href={reputation.explorerUrl}
+                    target="_blank"
+                    rel="noreferrer"
+                  >
+                    {reputation.txHash
+                      ? `${reputation.txHash.slice(0, 10)}…`
+                      : "view"}
+                  </a>
+                ) : (
+                  (reputation?.txHash ?? "—")
+                )}
+              </strong>
+            </div>
+            <div>
+              <span>PII fields onchain</span>
+              <strong className="ok">
+                {reputation
+                  ? `${reputation.piiFields?.length ?? 0} — portable, PII-free`
+                  : "—"}
+              </strong>
+            </div>
+            <div>
+              <span>Evidence hash</span>
+              <strong className="pp-mono">
+                {reputation?.evidenceHash
+                  ? `${reputation.evidenceHash.slice(0, 18)}…`
+                  : "—"}
+              </strong>
+            </div>
+          </div>
+        </section>
+
+        <section className="pp-module">
           <h2 className="pp-module-title">Agent plan</h2>
           {toolCalls.length ? (
             <ol className="pp-rows">
@@ -226,7 +321,10 @@ export default function Home() {
                     <span className="pp-row-index">
                       {String(i + 1).padStart(2, "0")}
                     </span>
-                    <span className="pp-row-name">{t.toolName}</span>
+                    <span className="pp-row-name">
+                      {t.agent ? `${t.agent}:` : ""}
+                      {t.toolName}
+                    </span>
                   </div>
                 </li>
               ))}
@@ -276,8 +374,8 @@ export default function Home() {
       </main>
 
       <footer className="pp-footer">
-        Emerging markets are where agentic finance is 10× — Nigeria is the proof,
-        not the pitch. Live vs simulated boundaries: MOCKS.md.
+        Credit &amp; reputation for agentic finance — Nigeria is the wedge, not
+        the ceiling. Live vs simulated: MOCKS.md.
       </footer>
     </div>
   );

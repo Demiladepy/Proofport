@@ -12,8 +12,12 @@
     "lint": "eslint",
     "smoke:credentials": "tsx tests/smoke/credentials.ts",
     "smoke:wallet": "tsx tests/smoke/wallet.ts",
+    "smoke:capability": "tsx tests/smoke/capability.ts",
+    "smoke:reputation": "tsx tests/smoke/reputation.ts",
     "balances": "tsx scripts/check-balances.ts",
     "bridge:base-sepolia": "tsx scripts/bridge-eth-to-base-sepolia.ts",
+    "compile:reputation": "tsx scripts/compile-reputation.ts",
+    "deploy:reputation": "tsx scripts/deploy-reputation.ts",
     "smoke:x402": "tsx tests/smoke/x402.ts",
     "smoke:swap": "tsx tests/smoke/swap.ts",
     "smoke:partner": "tsx tests/smoke/partner.ts",
@@ -47,6 +51,7 @@
     "@types/react-dom": "^19",
     "eslint": "^9",
     "eslint-config-next": "16.3.5",
+    "solc": "^0.8.28",
     "tailwindcss": "^4",
     "typescript": "^5"
   }

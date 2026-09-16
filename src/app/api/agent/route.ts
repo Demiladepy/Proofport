@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { runAgent } from "@/agent";
+import { runOrchestrator } from "@/orchestrator";
 import { grantDelegation, loadDelegation } from "@/delegation";
 
 export async function POST(req: NextRequest) {
@@ -9,20 +9,25 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "message required" }, { status: 400 });
   }
 
-  // Ensure demo starts with authority unless revoked
   const del = loadDelegation();
   if (!del.revokedAt && !del.granted) {
     grantDelegation({ mode: del.mode });
   }
 
   try {
-    const result = await runAgent(message);
+    const result = await runOrchestrator(message);
     return NextResponse.json(result);
   } catch (err) {
     const msg = err instanceof Error ? err.message : String(err);
     if (msg.includes("authority revoked")) {
       return NextResponse.json(
-        { error: "authority revoked", toolCalls: [], text: msg, mode: "blocked" },
+        {
+          error: "authority revoked",
+          toolCalls: [],
+          capabilityBlocks: [],
+          text: msg,
+          mode: "blocked",
+        },
         { status: 403 },
       );
     }

@@ -28,6 +28,15 @@ export function setWalletInfo(info: AgentWalletInfo) {
 
 export async function checkWallet(): Promise<AgentWalletInfo> {
   assertDelegationActive();
+  if (!cached.ready || !cached.address) {
+    try {
+      const { ensureDualWallets } = await import("./dual");
+      const { execution } = await ensureDualWallets();
+      return execution;
+    } catch {
+      return getWalletInfo();
+    }
+  }
   return getWalletInfo();
 }
 

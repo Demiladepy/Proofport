@@ -1,4 +1,4 @@
-# Phase 8 demo recording
+# Phase 9 demo recording (PRD v2)
 
 ## Recording path
 
@@ -6,14 +6,16 @@
 
 ## Beat frame list (60–90s)
 
-1. **Frame** — brand Proofport visible; thesis line in footer/tagline
+1. **Brand** — Proofport as onchain credit & reputation rail; cash-out is the wedge
 2. **Ask** — type/send “Get my $500 reward into my Zenith account.”
 3. **Selective disclosure** — visualizer lights `verified` + `country`; `full_name` / `id_number` locked
-4. **Convert** — swap panel shows provider + tx/mock hash
-5. **Self-funding** — x402 indicator shows agent paid compliance fee
-6. **Hand-off** — `settlement_initiated` + “no fiat” note
-7. **Revoke** — click Revoke; re-run blocked with authority revoked
-8. **Scale line** — footer / spoken close
+4. **Capability block** — proof-agent denied fund action; execution denied credential read
+5. **Convert** — swap panel shows provider + tx/mock hash
+6. **Self-funding** — x402 indicator shows agent paid compliance fee
+7. **Reputation earned** — attestation tx link; “portable, PII-free”
+8. **Hand-off** — `settlement_initiated` + “no fiat” note
+9. **Revoke** — click Revoke; re-run blocked with authority revoked
+10. **Scale line** — footer / spoken close
 
 ## Console
 
