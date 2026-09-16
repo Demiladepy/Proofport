@@ -12,6 +12,8 @@
     "lint": "eslint",
     "smoke:credentials": "tsx tests/smoke/credentials.ts",
     "smoke:wallet": "tsx tests/smoke/wallet.ts",
+    "balances": "tsx scripts/check-balances.ts",
+    "bridge:base-sepolia": "tsx scripts/bridge-eth-to-base-sepolia.ts",
     "smoke:x402": "tsx tests/smoke/x402.ts",
     "smoke:swap": "tsx tests/smoke/swap.ts",
     "smoke:partner": "tsx tests/smoke/partner.ts",

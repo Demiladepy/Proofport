@@ -1,31 +1,11 @@
 import type { Metadata } from "next";
-import {
-  Geist_Mono,
-  Instrument_Serif,
-  Inter,
-  JetBrains_Mono,
-} from "next/font/google";
+import { Space_Grotesk } from "next/font/google";
 import "./globals.css";
 
-const inter = Inter({
+const sui = Space_Grotesk({
   subsets: ["latin"],
-  variable: "--font-inter",
-});
-
-const instrument = Instrument_Serif({
-  subsets: ["latin"],
-  weight: "400",
-  variable: "--font-instrument",
-});
-
-const jetbrains = JetBrains_Mono({
-  subsets: ["latin"],
-  variable: "--font-jetbrains",
-});
-
-const geistMono = Geist_Mono({
-  subsets: ["latin"],
-  variable: "--font-geist-mono",
+  weight: ["300", "400", "500", "700"],
+  variable: "--font-space-grotesk",
 });
 
 export const metadata: Metadata = {
@@ -36,10 +16,7 @@ export const metadata: Metadata = {
 
 export default function RootLayout({ children }: LayoutProps<"/">) {
   return (
-    <html
-      lang="en"
-      className={`${inter.variable} ${instrument.variable} ${jetbrains.variable} ${geistMono.variable} h-full`}
-    >
+    <html lang="en" className={`${sui.variable} h-full`}>
       <body className="min-h-full">{children}</body>
     </html>
   );

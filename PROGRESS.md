@@ -77,19 +77,15 @@ Also verified via POST /api/agent → settlement_initiated with same sequence.
 
 ## Phase 3 — Dynamic wallet execution
 
-- [ ] Base Sepolia tx hash + explorer link resolves
+- [x] Base Sepolia tx hash + explorer link resolves (Windows local-viem agent wallet; Dynamic Neon unsupported on win32 — see MOCKS.md)
 
 ### Verification output
 
 ```
-npm run smoke:wallet
-{
-  "hasDynamicEnv": false,
-  "ok": false,
-  "error": "No DEMO_AGENT_PRIVATE_KEY / FAUCET_PRIVATE_KEY for local fallback"
-}
-BLOCKED: set DYNAMIC_ENVIRONMENT_ID + DYNAMIC_API_TOKEN (preferred) or DEMO_AGENT_PRIVATE_KEY + Base Sepolia ETH, then re-run smoke:wallet.
-Code path ready in src/wallet/dynamic.ts (DynamicEvmWalletClient create → sign → sendRawTransaction).
+Bridge L1: https://sepolia.etherscan.io/tx/0xe12ebdbe18239efd3f8d6ea54334a2e39c5cb99b9dd86ccf7b87a2d61517f800
+Balances: baseSepolia eth=0.02 usdc=20
+smoke:wallet tx: https://sepolia.basescan.org/tx/0x28d5ec5df76bf60b03b415f3e89cea5e242fa2cef6e7452a6ae711fc6bc9bdd9
+Mode: local_viem_windows_fallback (Dynamic Neon unsupported on win32)
 ```
 
 ---
