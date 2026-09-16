@@ -112,11 +112,12 @@ export default function Home() {
   }
 
   const disclosed = new Set(presentOut?.disclosed ?? []);
+  const toolCalls = result?.toolCalls ?? [];
 
   return (
     <div className="pp-shell">
       <header className="pp-header">
-        <div>
+        <div className="pp-header-brand">
           <p className="pp-eyebrow">Runtime · Bankr × Propaganda</p>
           <h1 className="pp-brand">Proofport</h1>
           <p className="pp-tagline">
@@ -148,15 +149,19 @@ export default function Home() {
             value={message}
             onChange={(e) => setMessage(e.target.value)}
             rows={3}
+            placeholder="Describe the cash-out…"
+            aria-label="Agent prompt"
           />
-          <button
-            type="button"
-            className="pp-btn primary"
-            disabled={running}
-            onClick={run}
-          >
-            {running ? "Agent working…" : "Run cash-out agent"}
-          </button>
+          <div className="pp-chat-actions">
+            <button
+              type="button"
+              className="pp-btn primary"
+              disabled={running}
+              onClick={run}
+            >
+              {running ? "Agent working…" : "Run cash-out agent"}
+            </button>
+          </div>
           {error && <p className="pp-error">{error}</p>}
           {result?.text && <p className="pp-agent-text">{result.text}</p>}
         </section>
@@ -164,12 +169,13 @@ export default function Home() {
         <section className="pp-panel">
           <h2>Agent plan</h2>
           <ol className="pp-steps">
-            {(result?.toolCalls ?? []).map((t, i) => (
+            {toolCalls.map((t, i) => (
               <li key={`${t.toolName}-${i}`}>
+                <span className="step-index">{String(i + 1).padStart(2, "0")}</span>
                 <code>{t.toolName}</code>
               </li>
             ))}
-            {!result?.toolCalls?.length && (
+            {!toolCalls.length && (
               <li className="muted">Waiting for a run…</li>
             )}
           </ol>

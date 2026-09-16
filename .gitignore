@@ -30,16 +30,15 @@ yarn-debug.log*
 yarn-error.log*
 .pnpm-debug.log*
 
-# env files (can opt-in for committing if needed)
+# env files — never commit real secrets (Vercel: set in dashboard only)
 .env
-.env.local
-.env.*.local
+.env.*
 !.env.example
 
-# local demo data / keys
+# local demo data / keys (wallets, issuer keys, delegation store)
 .data/
 
-# vercel
+# vercel CLI / link metadata (may contain project tokens)
 .vercel
 
 # typescript

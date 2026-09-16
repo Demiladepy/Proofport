@@ -158,14 +158,53 @@ export async function sendDynamicTinyTx(
   };
 }
 
+export async function ensureLocalViemWallet(): Promise<AgentWalletInfo> {
+  assertDelegationActive();
+  const existing = loadStore();
+  if (existing?.accountAddress && existing.mode === "local_viem") {
+    const info: AgentWalletInfo = {
+      address: existing.accountAddress,
+      ready: true,
+      mode: "stub",
+      note: existing.note ?? "local_viem fallback (Windows — Dynamic Neon unsupported)",
+    };
+    setWalletInfo(info);
+    return info;
+  }
+
+  const pk = process.env.DEMO_AGENT_PRIVATE_KEY ?? process.env.FAUCET_PRIVATE_KEY;
+  if (!pk) {
+    throw new Error(
+      "Set DEMO_AGENT_PRIVATE_KEY in .env (Windows cannot use Dynamic Node MPC / Neon)",
+    );
+  }
+  const account = privateKeyToAccount(
+    (pk.startsWith("0x") ? pk : `0x${pk}`) as Hex,
+  );
+  saveStore({
+    mode: "local_viem",
+    accountAddress: account.address,
+    note: "LOCAL VIEM FALLBACK — Dynamic Neon unsupported on win32. See MOCKS.md.",
+  });
+  const info: AgentWalletInfo = {
+    address: account.address,
+    ready: true,
+    mode: "stub",
+    note: "local_viem fallback (Windows)",
+  };
+  setWalletInfo(info);
+  return info;
+}
+
 /**
- * Local viem fallback for on-chain smoke when Dynamic creds unavailable.
+ * Local viem fallback for on-chain smoke when Dynamic creds unavailable / Windows.
  * Documented in MOCKS.md — NOT a Dynamic server wallet.
  */
 export async function sendLocalViemTinyTx(): Promise<SendTxResult> {
   assertDelegationActive();
+  const info = await ensureLocalViemWallet();
   const pk = process.env.DEMO_AGENT_PRIVATE_KEY ?? process.env.FAUCET_PRIVATE_KEY;
-  if (!pk) {
+  if (!pk || !info.address) {
     throw new Error("No DEMO_AGENT_PRIVATE_KEY / FAUCET_PRIVATE_KEY for local fallback");
   }
   const account = privateKeyToAccount(
@@ -180,26 +219,42 @@ export async function sendLocalViemTinyTx(): Promise<SendTxResult> {
     to: account.address,
     value: parseEther("0.000001"),
   });
-  saveStore({
-    mode: "local_viem",
-    accountAddress: account.address,
-    note: "LOCAL VIEM FALLBACK — not Dynamic. See MOCKS.md.",
-  });
-  setWalletInfo({
-    address: account.address,
-    ready: true,
-    mode: "stub",
-    note: "local_viem fallback",
-  });
   return {
     txHash,
     explorerUrl: `https://sepolia.basescan.org/tx/${txHash}`,
   };
 }
 
+function isWindowsDynamicUnsupported(err: unknown): boolean {
+  const msg = err instanceof Error ? err.message : String(err);
+  return (
+    msg.includes("unsupported system: win32") ||
+    msg.includes("Neon:") ||
+    msg.includes("only {darwin/linux}")
+  );
+}
+
 export async function sendTinyTestTx(): Promise<SendTxResult> {
   if (hasDynamicEnv()) {
-    return sendDynamicTinyTx();
+    try {
+      return await sendDynamicTinyTx();
+    } catch (err) {
+      if (isWindowsDynamicUnsupported(err)) {
+        return sendLocalViemTinyTx();
+      }
+      // unfunded local/dynamic still surfaces; also fall back if create never worked
+      if (
+        process.env.DEMO_AGENT_PRIVATE_KEY ||
+        process.env.FAUCET_PRIVATE_KEY
+      ) {
+        try {
+          return await sendLocalViemTinyTx();
+        } catch {
+          throw err;
+        }
+      }
+      throw err;
+    }
   }
   return sendLocalViemTinyTx();
 }
