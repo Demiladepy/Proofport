@@ -64,10 +64,10 @@ function HeroArtLeft() {
       <span
         className="pp-mascot pp-mascot-face"
         style={{
-          left: "4%",
-          top: "6%",
-          width: 104,
-          height: 104,
+          left: "10%",
+          top: "14%",
+          width: 92,
+          height: 92,
           borderRadius: 72,
           background: "#64c6ff",
         }}
@@ -75,10 +75,10 @@ function HeroArtLeft() {
       <span
         className="pp-mascot pp-mascot-face"
         style={{
-          left: "42%",
-          top: "44%",
-          width: 82,
-          height: 74,
+          left: "48%",
+          top: "52%",
+          width: 68,
+          height: 62,
           borderRadius: 40,
           background: "#00c978",
         }}
@@ -86,47 +86,24 @@ function HeroArtLeft() {
       <span
         className="pp-confetti"
         style={{
-          left: "66%",
-          top: "12%",
-          width: 26,
-          height: 26,
-          borderRadius: 6,
-          background: "#ffcd6c",
-          transform: "rotate(18deg)",
-        }}
-      />
-      <span
-        className="pp-confetti"
-        style={{
-          left: "12%",
-          top: "74%",
+          left: "68%",
+          top: "18%",
           width: 18,
           height: 18,
-          borderRadius: 999,
-          background: "#ff3e00",
+          borderRadius: 5,
+          background: "#ffcd6c",
+          transform: "rotate(16deg)",
         }}
       />
       <span
         className="pp-confetti"
         style={{
-          left: "74%",
-          top: "66%",
-          width: 32,
-          height: 14,
-          borderRadius: 999,
-          background: "#ff58ae",
-        }}
-      />
-      <span
-        className="pp-confetti"
-        style={{
-          left: "52%",
-          top: "78%",
+          left: "18%",
+          top: "72%",
           width: 14,
           height: 14,
-          borderRadius: 3,
-          background: "#9f4fff",
-          transform: "rotate(35deg)",
+          borderRadius: 999,
+          background: "#ff3e00",
         }}
       />
     </div>
@@ -139,11 +116,11 @@ function HeroArtRight() {
       <span
         className="pp-mascot"
         style={{
-          right: "10%",
-          top: "4%",
+          right: "14%",
+          top: "10%",
           left: "auto",
-          width: 96,
-          height: 88,
+          width: 84,
+          height: 76,
           borderRadius: 18,
           background: "#ffcd6c",
           clipPath: "polygon(50% 4%, 96% 92%, 4% 92%)",
@@ -154,11 +131,11 @@ function HeroArtRight() {
       <span
         className="pp-mascot pp-mascot-face"
         style={{
-          right: "38%",
-          top: "46%",
+          right: "42%",
+          top: "50%",
           left: "auto",
-          width: 80,
-          height: 80,
+          width: 70,
+          height: 70,
           borderRadius: 56,
           background: "#ff58ae",
         }}
@@ -166,50 +143,26 @@ function HeroArtRight() {
       <span
         className="pp-confetti"
         style={{
-          right: "16%",
-          top: "10%",
-          left: "auto",
-          width: 22,
-          height: 22,
-          borderRadius: 4,
-          background: "#9f4fff",
-          transform: "rotate(-12deg)",
-        }}
-      />
-      <span
-        className="pp-confetti"
-        style={{
-          right: "60%",
-          top: "22%",
+          right: "20%",
+          top: "14%",
           left: "auto",
           width: 16,
           height: 16,
-          borderRadius: 999,
-          background: "#00b2ff",
+          borderRadius: 4,
+          background: "#9f4fff",
+          transform: "rotate(-10deg)",
         }}
       />
       <span
         className="pp-confetti"
         style={{
-          right: "4%",
-          top: "72%",
+          right: "8%",
+          top: "68%",
           left: "auto",
-          width: 28,
-          height: 14,
+          width: 22,
+          height: 12,
           borderRadius: 999,
           background: "#e5d5c3",
-        }}
-      />
-      <span
-        className="pp-confetti"
-        style={{
-          right: "48%",
-          top: "76%",
-          left: "auto",
-          width: 20,
-          height: 20,
-          borderRadius: 999,
-          background: "#00c978",
         }}
       />
     </div>
@@ -261,7 +214,7 @@ export default function Home() {
 
   const capabilityBlocks = result?.capabilityBlocks ?? [];
   const reputation = result?.reputation;
-  const hasRun = Boolean(result && !result.error);
+  const hasRun = Boolean(result && !error);
   const handoffOk = handoffOut?.status === "settlement_initiated";
 
   const beatDone = {
@@ -326,6 +279,7 @@ export default function Home() {
   const disclosed = new Set(presentOut?.disclosed ?? []);
   const toolCalls = result?.toolCalls ?? [];
   const openCount = disclosed.size;
+  const doneCount = Object.values(beatDone).filter(Boolean).length;
 
   return (
     <div className="pp-shell">
@@ -354,58 +308,17 @@ export default function Home() {
       <header className="pp-hero">
         <HeroArtLeft />
         <div className="pp-hero-center">
-          <p className="pp-eyebrow">Onchain credit &amp; reputation</p>
+          <p className="pp-eyebrow">Credit &amp; reputation rail</p>
           <h1 className="pp-brand">Proofport</h1>
           <p className="pp-tagline">
-            Prove once, privately. Proof-agent discloses; execution moves funds
-            on a boolean. Reputation attests — hashes only, never PII.
+            Prove privately. Move funds on a boolean. Attest onchain — never
+            PII.
           </p>
-          <div className="pp-hero-ctas">
-            <button
-              type="button"
-              className="pp-btn-dark pp-btn-lg"
-              disabled={running}
-              onClick={() => void run()}
-            >
-              {running ? "Running…" : "Run the demo"}
-            </button>
-            <a className="pp-link-demo" href="#ask">
-              Or edit the ask ↓
-            </a>
-          </div>
         </div>
         <HeroArtRight />
       </header>
 
-      <section className="pp-thesis" aria-label="Why judges care">
-        <div className="pp-thesis-card">
-          <span className="pp-thesis-dot" style={{ background: "#64c6ff" }} />
-          <div>
-            <strong>Selective disclosure</strong>
-            <p>SD-JWT proves verified + country — full ID never leaves the device.</p>
-          </div>
-        </div>
-        <div className="pp-thesis-card">
-          <span className="pp-thesis-dot" style={{ background: "#121212" }} />
-          <div>
-            <strong>Two bounded agents</strong>
-            <p>Capability denied in code — not a prompt suggestion.</p>
-          </div>
-        </div>
-        <div className="pp-thesis-card">
-          <span className="pp-thesis-dot" style={{ background: "#00c978" }} />
-          <div>
-            <strong>PII-free reputation</strong>
-            <p>Onchain attestation is hashes only — portable credit seed.</p>
-          </div>
-        </div>
-      </section>
-
       <section className="pp-ask" id="ask" aria-label="Ask the agent">
-        <div className="pp-ask-head">
-          <p className="pp-section-label">Ask the agent</p>
-          <p className="pp-ask-hint">Cash-out wedge · no fiat moves here</p>
-        </div>
         <textarea
           ref={inputRef}
           value={message}
@@ -431,16 +344,7 @@ export default function Home() {
               ? "Working…"
               : delegation?.revokedAt
                 ? "Grant authority first"
-                : "Run credit-rail demo"}
-          </button>
-          <button
-            type="button"
-            className="pp-btn-sand"
-            onClick={() =>
-              setMessage("Get my $500 reward into my Zenith account.")
-            }
-          >
-            Reset prompt
+                : "Run demo"}
           </button>
           <p className="pp-hint">⌘ / Ctrl + Enter</p>
         </div>
@@ -453,46 +357,51 @@ export default function Home() {
         )}
       </section>
 
-      <nav className="pp-beats" aria-label="Demo beats">
-        {DEMO_BEATS.map((beat, i) => {
+      <ol className="pp-beats" aria-label="Demo progress">
+        {DEMO_BEATS.map((beat) => {
           const done = beatDone[beat.id as keyof typeof beatDone];
           return (
-            <div
+            <li
               key={beat.id}
               className={
-                done ? "pp-beat pp-beat-done" : running ? "pp-beat pp-beat-live" : "pp-beat"
+                done
+                  ? "pp-beat pp-beat-done"
+                  : running
+                    ? "pp-beat pp-beat-live"
+                    : "pp-beat"
               }
             >
-              <span className="pp-beat-num">{String(i + 1).padStart(2, "0")}</span>
+              <span className="pp-beat-dot" aria-hidden="true" />
               <span className="pp-beat-label">{beat.label}</span>
-            </div>
+            </li>
           );
         })}
-      </nav>
+      </ol>
+      {(hasRun || running) && (
+        <p className="pp-beats-meta">
+          {running ? "Running pipeline…" : `${doneCount} of ${DEMO_BEATS.length} beats complete`}
+        </p>
+      )}
 
       {handoffOk && (
         <div className="pp-success" role="status">
-          <div className="pp-success-badge">Settlement initiated</div>
+          <span className="pp-success-badge">Settlement initiated</span>
           <p>
-            Partner hand-off ready · no fiat moved · reputation{" "}
-            {reputation?.txHash ? (
-              <a
-                href={reputation.explorerUrl}
-                target="_blank"
-                rel="noreferrer"
-              >
-                attested onchain
-              </a>
-            ) : (
-              "pending"
+            No fiat moved.
+            {reputation?.explorerUrl && (
+              <>
+                {" "}
+                <a
+                  href={reputation.explorerUrl}
+                  target="_blank"
+                  rel="noreferrer"
+                >
+                  Reputation attested
+                </a>
+              </>
             )}
-            .
           </p>
         </div>
-      )}
-
-      {result?.text && !error && (
-        <p className="pp-agent-text">{result.text}</p>
       )}
 
       <main className="pp-modules" ref={resultsRef} id="results">
@@ -500,14 +409,13 @@ export default function Home() {
           <div className="pp-module-head">
             <h2 className="pp-module-title">Selective disclosure</h2>
             {hasRun && (
-              <span className="pp-chip pp-chip-mint">
-                {openCount} revealed · {ALL_IDENTITY.length - openCount} locked
+              <span className="pp-chip">
+                {openCount} open · {ALL_IDENTITY.length - openCount} locked
               </span>
             )}
           </div>
           <p className="pp-module-lead">
-            Lit claims leave the device. Struck claims stay cryptographically
-            absent — not just hidden in the UI.
+            Only what the step needs leaves the device.
           </p>
           <ul className="pp-rows">
             {ALL_IDENTITY.map((claim, i) => {
@@ -522,11 +430,7 @@ export default function Home() {
                         ? "pp-row pp-row-locked"
                         : "pp-row pp-row-idle"
                   }
-                  style={
-                    open
-                      ? { animationDelay: `${i * 60}ms` }
-                      : undefined
-                  }
+                  style={open ? { animationDelay: `${i * 50}ms` } : undefined}
                 >
                   <div className="pp-row-main">
                     <span
@@ -534,43 +438,38 @@ export default function Home() {
                       style={{
                         background: open
                           ? CLAIM_COLORS[i % CLAIM_COLORS.length]
-                          : "#f2f0ed",
+                          : "transparent",
                       }}
                       aria-hidden="true"
                     />
-                    <span className="pp-row-name">
-                      {claim.label}
-                      <em>{claim.key}</em>
-                    </span>
+                    <span className="pp-row-name">{claim.label}</span>
                   </div>
                   <span className="pp-row-meta">
                     {open
                       ? String(
-                          presentOut?.disclosedClaims?.[claim.key] ?? "revealed",
+                          presentOut?.disclosedClaims?.[claim.key] ?? "yes",
                         )
                       : hasRun
                         ? "locked"
-                        : "waiting"}
+                        : "—"}
                   </span>
                 </li>
               );
             })}
           </ul>
-          <div className="pp-exposure">
-            Identity exposure:{" "}
-            <strong>full ID never left your device</strong>
-          </div>
+          <p className="pp-exposure">
+            <strong>Full ID never left your device.</strong>
+          </p>
         </section>
 
         <section className="pp-module pp-module-dark">
           <h2 className="pp-module-title">Capability block</h2>
           <p className="pp-module-lead">
-            Hard denials at the tool boundary — not a prompt suggestion.
+            Denied in code — not by prompt.
           </p>
           {capabilityBlocks.length ? (
             <ul className="pp-rows">
               {capabilityBlocks.map((b, i) => {
-                const out = b.output as { error?: string };
                 const iconColors = ["#0090ff", "#9f4fff", "#00ca48", "#ff58ae"];
                 return (
                   <li key={`${b.toolName}-${i}`} className="pp-row">
@@ -584,7 +483,7 @@ export default function Home() {
                         aria-hidden="true"
                       />
                       <span className="pp-row-name">
-                        {b.agent ?? "?"}-agent
+                        {b.agent}-agent
                         <em>{b.toolName}</em>
                       </span>
                     </div>
@@ -594,26 +493,21 @@ export default function Home() {
               })}
             </ul>
           ) : (
-            <div className="pp-empty">
-              <p>Proof cannot swap. Execution cannot read credentials.</p>
-              <p className="pp-empty-sub">Run the demo to show both denials.</p>
-            </div>
+            <p className="pp-empty">Run to show proof ≠ funds, execution ≠ credentials.</p>
           )}
         </section>
 
         <section className="pp-module">
           <div className="pp-module-head">
-            <h2 className="pp-module-title">Reputation earned</h2>
-            {reputation?.txHash && (
-              <span className="pp-chip pp-chip-mint">PII-free</span>
-            )}
+            <h2 className="pp-module-title">Reputation</h2>
+            {reputation?.txHash && <span className="pp-chip">PII-free</span>}
           </div>
           <p className="pp-module-lead">
-            Portable attestation — subject · kind · evidence hash only.
+            Onchain hashes only — portable credit seed.
           </p>
           <div className="pp-kv">
             <div>
-              <span>Attestation tx</span>
+              <span>Attestation</span>
               <strong>
                 {reputation?.explorerUrl ? (
                   <a
@@ -622,8 +516,8 @@ export default function Home() {
                     rel="noreferrer"
                   >
                     {reputation.txHash
-                      ? `${reputation.txHash.slice(0, 12)}…`
-                      : "view on Basescan"}
+                      ? `${reputation.txHash.slice(0, 10)}…`
+                      : "Basescan"}
                   </a>
                 ) : (
                   "—"
@@ -631,53 +525,28 @@ export default function Home() {
               </strong>
             </div>
             <div>
-              <span>PII fields onchain</span>
+              <span>PII onchain</span>
               <strong className={reputation ? "ok" : ""}>
-                {reputation
-                  ? `${reputation.piiFields?.length ?? 0} — portable, PII-free`
-                  : "—"}
-              </strong>
-            </div>
-            <div>
-              <span>Evidence hash</span>
-              <strong className="pp-mono">
-                {reputation?.evidenceHash
-                  ? `${reputation.evidenceHash.slice(0, 20)}…`
-                  : "—"}
+                {reputation ? "0 fields" : "—"}
               </strong>
             </div>
           </div>
         </section>
 
         <section className="pp-module pp-module-plan">
-          <h2 className="pp-module-title">Agent plan</h2>
+          <h2 className="pp-module-title">Plan</h2>
           {toolCalls.length ? (
-            <ol className="pp-rows">
+            <ol className="pp-plan">
               {toolCalls.map((t, i) => (
-                <li
-                  key={`${t.toolName}-${i}`}
-                  className="pp-row"
-                  style={{ animationDelay: `${i * 40}ms` }}
-                >
-                  <div className="pp-row-main">
-                    <span className="pp-row-index">
-                      {String(i + 1).padStart(2, "0")}
-                    </span>
-                    <span className="pp-row-name">
-                      {t.agent ? `${t.agent}:` : ""}
-                      {t.toolName}
-                    </span>
-                  </div>
+                <li key={`${t.toolName}-${i}`}>
+                  <span>{String(i + 1).padStart(2, "0")}</span>
+                  {t.agent ? `${t.agent}:` : ""}
+                  {t.toolName}
                 </li>
               ))}
             </ol>
           ) : (
-            <div className="pp-empty">
-              <p>Orchestrator path appears here after you run.</p>
-              <p className="pp-empty-sub">
-                proof → deny → swap → x402 → attest → handoff
-              </p>
-            </div>
+            <p className="pp-empty">proof → deny → swap → pay → attest → handoff</p>
           )}
         </section>
 
@@ -686,49 +555,25 @@ export default function Home() {
           <div className="pp-kv">
             <div>
               <span>Swap</span>
-              <strong>
-                {swapOut?.provider ?? "—"}{" "}
-                {swapOut?.explorerUrl ? (
-                  <a
-                    href={swapOut.explorerUrl}
-                    target="_blank"
-                    rel="noreferrer"
-                  >
-                    tx
-                  </a>
-                ) : (
-                  (swapOut?.txHash?.slice(0, 14) ?? "")
-                )}
-              </strong>
-              {swapOut?.note && <p className="muted">{swapOut.note}</p>}
+              <strong>{swapOut?.provider ?? "—"}</strong>
             </div>
             <div>
-              <span>x402 self-funding</span>
+              <span>x402</span>
               <strong className={payOut?.paidVia === "x402" ? "ok" : ""}>
-                {payOut?.message ?? "—"}
+                {payOut?.paidVia === "x402" ? "Paid" : "—"}
               </strong>
             </div>
             <div>
-              <span>Partner hand-off · no fiat</span>
-              <strong>
-                {handoffOut?.status ?? "—"}
-                {handoffOut?.reference ? ` · ${handoffOut.reference}` : ""}
-              </strong>
-              {handoffOut?.note && <p className="muted">{handoffOut.note}</p>}
+              <span>Hand-off</span>
+              <strong>{handoffOut?.status ?? "—"}</strong>
             </div>
           </div>
         </section>
       </main>
 
       <footer className="pp-footer">
-        <p>
-          Credit &amp; reputation for agentic finance — Nigeria is the wedge,
-          not the ceiling.
-        </p>
-        <p className="pp-footer-meta">
-          Live vs simulated boundaries in MOCKS.md · Base Sepolia · Dynamic +
-          Uniswap tracks
-        </p>
+        <p>Nigeria is the wedge, not the ceiling.</p>
+        <p className="pp-footer-meta">MOCKS.md · Base Sepolia · Dynamic + Uniswap</p>
       </footer>
     </div>
   );
