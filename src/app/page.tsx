@@ -34,11 +34,11 @@ type Delegation = {
 };
 
 const ALL_IDENTITY = [
-  "verified",
-  "country",
-  "over_18",
-  "full_name",
-  "id_number",
+  { key: "verified", label: "Verified" },
+  { key: "country", label: "Country" },
+  { key: "over_18", label: "Over 18" },
+  { key: "full_name", label: "Full name" },
+  { key: "id_number", label: "ID number" },
 ] as const;
 
 const CLAIM_COLORS = [
@@ -49,16 +49,25 @@ const CLAIM_COLORS = [
   "#9f4fff",
 ] as const;
 
+const DEMO_BEATS = [
+  { id: "proof", label: "Disclose" },
+  { id: "capability", label: "Bound" },
+  { id: "swap", label: "Swap" },
+  { id: "x402", label: "Pay" },
+  { id: "reputation", label: "Attest" },
+  { id: "handoff", label: "Hand off" },
+] as const;
+
 function HeroArtLeft() {
   return (
     <div className="pp-hero-art" aria-hidden="true">
       <span
         className="pp-mascot pp-mascot-face"
         style={{
-          left: "6%",
-          top: "8%",
-          width: 96,
-          height: 96,
+          left: "4%",
+          top: "6%",
+          width: 104,
+          height: 104,
           borderRadius: 72,
           background: "#64c6ff",
         }}
@@ -66,10 +75,10 @@ function HeroArtLeft() {
       <span
         className="pp-mascot pp-mascot-face"
         style={{
-          left: "38%",
-          top: "46%",
-          width: 78,
-          height: 70,
+          left: "42%",
+          top: "44%",
+          width: 82,
+          height: 74,
           borderRadius: 40,
           background: "#00c978",
         }}
@@ -77,10 +86,10 @@ function HeroArtLeft() {
       <span
         className="pp-confetti"
         style={{
-          left: "62%",
-          top: "14%",
-          width: 24,
-          height: 24,
+          left: "66%",
+          top: "12%",
+          width: 26,
+          height: 26,
           borderRadius: 6,
           background: "#ffcd6c",
           transform: "rotate(18deg)",
@@ -89,8 +98,8 @@ function HeroArtLeft() {
       <span
         className="pp-confetti"
         style={{
-          left: "14%",
-          top: "72%",
+          left: "12%",
+          top: "74%",
           width: 18,
           height: 18,
           borderRadius: 999,
@@ -100,12 +109,24 @@ function HeroArtLeft() {
       <span
         className="pp-confetti"
         style={{
-          left: "72%",
-          top: "68%",
-          width: 30,
+          left: "74%",
+          top: "66%",
+          width: 32,
           height: 14,
           borderRadius: 999,
           background: "#ff58ae",
+        }}
+      />
+      <span
+        className="pp-confetti"
+        style={{
+          left: "52%",
+          top: "78%",
+          width: 14,
+          height: 14,
+          borderRadius: 3,
+          background: "#9f4fff",
+          transform: "rotate(35deg)",
         }}
       />
     </div>
@@ -118,11 +139,11 @@ function HeroArtRight() {
       <span
         className="pp-mascot"
         style={{
-          right: "12%",
-          top: "6%",
+          right: "10%",
+          top: "4%",
           left: "auto",
-          width: 92,
-          height: 84,
+          width: 96,
+          height: 88,
           borderRadius: 18,
           background: "#ffcd6c",
           clipPath: "polygon(50% 4%, 96% 92%, 4% 92%)",
@@ -133,11 +154,11 @@ function HeroArtRight() {
       <span
         className="pp-mascot pp-mascot-face"
         style={{
-          right: "36%",
-          top: "48%",
+          right: "38%",
+          top: "46%",
           left: "auto",
-          width: 76,
-          height: 76,
+          width: 80,
+          height: 80,
           borderRadius: 56,
           background: "#ff58ae",
         }}
@@ -145,8 +166,8 @@ function HeroArtRight() {
       <span
         className="pp-confetti"
         style={{
-          right: "18%",
-          top: "8%",
+          right: "16%",
+          top: "10%",
           left: "auto",
           width: 22,
           height: 22,
@@ -158,8 +179,8 @@ function HeroArtRight() {
       <span
         className="pp-confetti"
         style={{
-          right: "58%",
-          top: "24%",
+          right: "60%",
+          top: "22%",
           left: "auto",
           width: 16,
           height: 16,
@@ -170,13 +191,25 @@ function HeroArtRight() {
       <span
         className="pp-confetti"
         style={{
-          right: "6%",
-          top: "70%",
+          right: "4%",
+          top: "72%",
           left: "auto",
           width: 28,
           height: 14,
           borderRadius: 999,
           background: "#e5d5c3",
+        }}
+      />
+      <span
+        className="pp-confetti"
+        style={{
+          right: "48%",
+          top: "76%",
+          left: "auto",
+          width: 20,
+          height: 20,
+          borderRadius: 999,
+          background: "#00c978",
         }}
       />
     </div>
@@ -192,6 +225,7 @@ export default function Home() {
   const [delegation, setDelegation] = useState<Delegation | null>(null);
   const [error, setError] = useState<string | null>(null);
   const inputRef = useRef<HTMLTextAreaElement>(null);
+  const resultsRef = useRef<HTMLElement>(null);
 
   const refreshDelegation = useCallback(async () => {
     const res = await fetch("/api/delegation");
@@ -227,6 +261,17 @@ export default function Home() {
 
   const capabilityBlocks = result?.capabilityBlocks ?? [];
   const reputation = result?.reputation;
+  const hasRun = Boolean(result && !result.error);
+  const handoffOk = handoffOut?.status === "settlement_initiated";
+
+  const beatDone = {
+    proof: Boolean(presentOut?.disclosed?.length),
+    capability: capabilityBlocks.length >= 2,
+    swap: Boolean(swapOut),
+    x402: payOut?.paidVia === "x402",
+    reputation: Boolean(reputation?.txHash),
+    handoff: handoffOk,
+  };
 
   const run = useCallback(async () => {
     if (running) return;
@@ -245,6 +290,12 @@ export default function Home() {
         setResult(data);
       } else {
         setResult(data);
+        requestAnimationFrame(() => {
+          resultsRef.current?.scrollIntoView({
+            behavior: "smooth",
+            block: "start",
+          });
+        });
       }
       await refreshDelegation();
     } catch (e) {
@@ -274,6 +325,7 @@ export default function Home() {
 
   const disclosed = new Set(presentOut?.disclosed ?? []);
   const toolCalls = result?.toolCalls ?? [];
+  const openCount = disclosed.size;
 
   return (
     <div className="pp-shell">
@@ -302,34 +354,58 @@ export default function Home() {
       <header className="pp-hero">
         <HeroArtLeft />
         <div className="pp-hero-center">
-          <p className="pp-eyebrow">Credit &amp; reputation rail</p>
+          <p className="pp-eyebrow">Onchain credit &amp; reputation</p>
           <h1 className="pp-brand">Proofport</h1>
           <p className="pp-tagline">
-            Prove privately. Two bounded agents. Reputation onchain — hashes
-            only, never PII. Cash-out is the wedge.
+            Prove once, privately. Proof-agent discloses; execution moves funds
+            on a boolean. Reputation attests — hashes only, never PII.
           </p>
           <div className="pp-hero-ctas">
             <button
               type="button"
               className="pp-btn-dark pp-btn-lg"
               disabled={running}
-              onClick={() => {
-                inputRef.current?.scrollIntoView({ behavior: "smooth", block: "center" });
-                inputRef.current?.focus();
-              }}
+              onClick={() => void run()}
             >
-              Get started
+              {running ? "Running…" : "Run the demo"}
             </button>
             <a className="pp-link-demo" href="#ask">
-              Watch the demo flow
+              Or edit the ask ↓
             </a>
           </div>
         </div>
         <HeroArtRight />
       </header>
 
+      <section className="pp-thesis" aria-label="Why judges care">
+        <div className="pp-thesis-card">
+          <span className="pp-thesis-dot" style={{ background: "#64c6ff" }} />
+          <div>
+            <strong>Selective disclosure</strong>
+            <p>SD-JWT proves verified + country — full ID never leaves the device.</p>
+          </div>
+        </div>
+        <div className="pp-thesis-card">
+          <span className="pp-thesis-dot" style={{ background: "#121212" }} />
+          <div>
+            <strong>Two bounded agents</strong>
+            <p>Capability denied in code — not a prompt suggestion.</p>
+          </div>
+        </div>
+        <div className="pp-thesis-card">
+          <span className="pp-thesis-dot" style={{ background: "#00c978" }} />
+          <div>
+            <strong>PII-free reputation</strong>
+            <p>Onchain attestation is hashes only — portable credit seed.</p>
+          </div>
+        </div>
+      </section>
+
       <section className="pp-ask" id="ask" aria-label="Ask the agent">
-        <p className="pp-section-label">Ask</p>
+        <div className="pp-ask-head">
+          <p className="pp-section-label">Ask the agent</p>
+          <p className="pp-ask-hint">Cash-out wedge · no fiat moves here</p>
+        </div>
         <textarea
           ref={inputRef}
           value={message}
@@ -348,10 +424,14 @@ export default function Home() {
           <button
             type="button"
             className="pp-btn-dark pp-btn-lg"
-            disabled={running}
+            disabled={running || Boolean(delegation?.revokedAt)}
             onClick={() => void run()}
           >
-            {running ? "Working…" : "Run credit-rail demo"}
+            {running
+              ? "Working…"
+              : delegation?.revokedAt
+                ? "Grant authority first"
+                : "Run credit-rail demo"}
           </button>
           <button
             type="button"
@@ -364,25 +444,88 @@ export default function Home() {
           </button>
           <p className="pp-hint">⌘ / Ctrl + Enter</p>
         </div>
-        {error && <p className="pp-error">{error}</p>}
-        {result?.text && <p className="pp-agent-text">{result.text}</p>}
+        {error && (
+          <p className="pp-error">
+            {error === "authority revoked"
+              ? "Authority revoked — Grant again to continue."
+              : error}
+          </p>
+        )}
       </section>
 
-      <main className="pp-modules">
+      <nav className="pp-beats" aria-label="Demo beats">
+        {DEMO_BEATS.map((beat, i) => {
+          const done = beatDone[beat.id as keyof typeof beatDone];
+          return (
+            <div
+              key={beat.id}
+              className={
+                done ? "pp-beat pp-beat-done" : running ? "pp-beat pp-beat-live" : "pp-beat"
+              }
+            >
+              <span className="pp-beat-num">{String(i + 1).padStart(2, "0")}</span>
+              <span className="pp-beat-label">{beat.label}</span>
+            </div>
+          );
+        })}
+      </nav>
+
+      {handoffOk && (
+        <div className="pp-success" role="status">
+          <div className="pp-success-badge">Settlement initiated</div>
+          <p>
+            Partner hand-off ready · no fiat moved · reputation{" "}
+            {reputation?.txHash ? (
+              <a
+                href={reputation.explorerUrl}
+                target="_blank"
+                rel="noreferrer"
+              >
+                attested onchain
+              </a>
+            ) : (
+              "pending"
+            )}
+            .
+          </p>
+        </div>
+      )}
+
+      {result?.text && !error && (
+        <p className="pp-agent-text">{result.text}</p>
+      )}
+
+      <main className="pp-modules" ref={resultsRef} id="results">
         <section className="pp-module pp-module-disclosure">
-          <h2 className="pp-module-title">Selective disclosure</h2>
+          <div className="pp-module-head">
+            <h2 className="pp-module-title">Selective disclosure</h2>
+            {hasRun && (
+              <span className="pp-chip pp-chip-mint">
+                {openCount} revealed · {ALL_IDENTITY.length - openCount} locked
+              </span>
+            )}
+          </div>
           <p className="pp-module-lead">
             Lit claims leave the device. Struck claims stay cryptographically
             absent — not just hidden in the UI.
           </p>
           <ul className="pp-rows">
             {ALL_IDENTITY.map((claim, i) => {
-              const open = disclosed.has(claim);
+              const open = disclosed.has(claim.key);
               return (
                 <li
-                  key={claim}
+                  key={claim.key}
                   className={
-                    open ? "pp-row pp-row-open" : "pp-row pp-row-locked"
+                    open
+                      ? "pp-row pp-row-open"
+                      : hasRun
+                        ? "pp-row pp-row-locked"
+                        : "pp-row pp-row-idle"
+                  }
+                  style={
+                    open
+                      ? { animationDelay: `${i * 60}ms` }
+                      : undefined
                   }
                 >
                   <div className="pp-row-main">
@@ -395,14 +538,19 @@ export default function Home() {
                       }}
                       aria-hidden="true"
                     />
-                    <span className="pp-row-name">{claim}</span>
+                    <span className="pp-row-name">
+                      {claim.label}
+                      <em>{claim.key}</em>
+                    </span>
                   </div>
                   <span className="pp-row-meta">
                     {open
                       ? String(
-                          presentOut?.disclosedClaims?.[claim] ?? "revealed",
+                          presentOut?.disclosedClaims?.[claim.key] ?? "revealed",
                         )
-                      : "locked"}
+                      : hasRun
+                        ? "locked"
+                        : "waiting"}
                   </span>
                 </li>
               );
@@ -436,29 +584,32 @@ export default function Home() {
                         aria-hidden="true"
                       />
                       <span className="pp-row-name">
-                        {b.agent ?? "?"}-agent · {b.toolName}
+                        {b.agent ?? "?"}-agent
+                        <em>{b.toolName}</em>
                       </span>
                     </div>
-                    <span className="pp-row-meta">
-                      {out.error ?? "capability denied"}
-                    </span>
+                    <span className="pp-row-meta">denied</span>
                   </li>
                 );
               })}
             </ul>
           ) : (
-            <p className="pp-row-empty">
-              Run to show proof denied funds &amp; execution denied credential
-              reads.
-            </p>
+            <div className="pp-empty">
+              <p>Proof cannot swap. Execution cannot read credentials.</p>
+              <p className="pp-empty-sub">Run the demo to show both denials.</p>
+            </div>
           )}
         </section>
 
         <section className="pp-module">
-          <h2 className="pp-module-title">Reputation earned</h2>
+          <div className="pp-module-head">
+            <h2 className="pp-module-title">Reputation earned</h2>
+            {reputation?.txHash && (
+              <span className="pp-chip pp-chip-mint">PII-free</span>
+            )}
+          </div>
           <p className="pp-module-lead">
-            Portable, PII-free attestation — subject · kind · evidence hash
-            only.
+            Portable attestation — subject · kind · evidence hash only.
           </p>
           <div className="pp-kv">
             <div>
@@ -471,17 +622,17 @@ export default function Home() {
                     rel="noreferrer"
                   >
                     {reputation.txHash
-                      ? `${reputation.txHash.slice(0, 10)}…`
-                      : "view"}
+                      ? `${reputation.txHash.slice(0, 12)}…`
+                      : "view on Basescan"}
                   </a>
                 ) : (
-                  (reputation?.txHash ?? "—")
+                  "—"
                 )}
               </strong>
             </div>
             <div>
               <span>PII fields onchain</span>
-              <strong className="ok">
+              <strong className={reputation ? "ok" : ""}>
                 {reputation
                   ? `${reputation.piiFields?.length ?? 0} — portable, PII-free`
                   : "—"}
@@ -491,7 +642,7 @@ export default function Home() {
               <span>Evidence hash</span>
               <strong className="pp-mono">
                 {reputation?.evidenceHash
-                  ? `${reputation.evidenceHash.slice(0, 18)}…`
+                  ? `${reputation.evidenceHash.slice(0, 20)}…`
                   : "—"}
               </strong>
             </div>
@@ -503,7 +654,11 @@ export default function Home() {
           {toolCalls.length ? (
             <ol className="pp-rows">
               {toolCalls.map((t, i) => (
-                <li key={`${t.toolName}-${i}`} className="pp-row">
+                <li
+                  key={`${t.toolName}-${i}`}
+                  className="pp-row"
+                  style={{ animationDelay: `${i * 40}ms` }}
+                >
                   <div className="pp-row-main">
                     <span className="pp-row-index">
                       {String(i + 1).padStart(2, "0")}
@@ -517,7 +672,12 @@ export default function Home() {
               ))}
             </ol>
           ) : (
-            <p className="pp-row-empty">Run the agent to see the plan.</p>
+            <div className="pp-empty">
+              <p>Orchestrator path appears here after you run.</p>
+              <p className="pp-empty-sub">
+                proof → deny → swap → x402 → attest → handoff
+              </p>
+            </div>
           )}
         </section>
 
@@ -537,7 +697,7 @@ export default function Home() {
                     tx
                   </a>
                 ) : (
-                  (swapOut?.txHash ?? "")
+                  (swapOut?.txHash?.slice(0, 14) ?? "")
                 )}
               </strong>
               {swapOut?.note && <p className="muted">{swapOut.note}</p>}
@@ -561,8 +721,14 @@ export default function Home() {
       </main>
 
       <footer className="pp-footer">
-        Credit &amp; reputation for agentic finance — Nigeria is the wedge, not
-        the ceiling. Live vs simulated: MOCKS.md.
+        <p>
+          Credit &amp; reputation for agentic finance — Nigeria is the wedge,
+          not the ceiling.
+        </p>
+        <p className="pp-footer-meta">
+          Live vs simulated boundaries in MOCKS.md · Base Sepolia · Dynamic +
+          Uniswap tracks
+        </p>
       </footer>
     </div>
   );
