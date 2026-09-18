@@ -19,7 +19,10 @@ export type ComplianceCheckResult = {
 };
 
 function getLocalAccount(): Account | null {
-  const pk = process.env.DEMO_AGENT_PRIVATE_KEY ?? process.env.FAUCET_PRIVATE_KEY;
+  const pk =
+    process.env.EXECUTION_AGENT_PRIVATE_KEY ??
+    process.env.DEMO_AGENT_PRIVATE_KEY ??
+    process.env.FAUCET_PRIVATE_KEY;
   if (!pk) return null;
   return privateKeyToAccount((pk.startsWith("0x") ? pk : `0x${pk}`) as Hex);
 }

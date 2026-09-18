@@ -17,7 +17,7 @@ Built for Runtime (Bankr × Propaganda). **Not** a consumer cash-out app. We are
 | x402 402 → retry | **LIVE header / SIMULATED result** | Protocol loop is real; compliance body is mock |
 | ID issuer (NIN/BVN stand-in) | **SIMULATED** | Legal / no government issuer |
 | Licensed partner / bank | **SIMULATED** | Legal: we do not move fiat |
-| Uniswap swap | **LIVE** on Base Sepolia (tiny ETH→USDC) | Testnet. Confirmed SwapRouter02 tx. Mock only if quote fails, and then labeled. |
+| Uniswap swap | **LIVE** on Base Sepolia (tiny ETH→USDC) | Testnet. Trading API first when `UNISWAP_API_KEY` is set; SwapRouter02 if the API cannot route. Mock only if both fail, and then labeled. |
 | Dynamic Neon MPC | **SIMULATED / incomplete on Windows** | SDK is darwin/linux; local viem wallets |
 
 Full ledger: [`MOCKS.md`](MOCKS.md).

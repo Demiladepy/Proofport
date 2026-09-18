@@ -45,6 +45,34 @@ function resolveToken(symbol: SwapRequest["fromToken"]): Address {
   return BASE_SEPOLIA_UNISWAP.weth;
 }
 
+export async function quoteUniswapV3(req: SwapRequest): Promise<{ amountOut: string }> {
+  const publicClient = createPublicClient({
+    chain: baseSepolia,
+    transport: http(RPC),
+  });
+  const tokenIn = resolveToken(req.fromToken);
+  const tokenOut = resolveToken(req.toToken);
+  const amountIn =
+    req.fromToken === "USDC"
+      ? parseUnits(req.amountIn, 6)
+      : parseUnits(req.amountIn, 18);
+  const { result } = await publicClient.simulateContract({
+    address: BASE_SEPOLIA_UNISWAP.quoterV2,
+    abi: quoterAbi,
+    functionName: "quoteExactInputSingle",
+    args: [
+      {
+        tokenIn,
+        tokenOut,
+        amountIn,
+        fee: 3000,
+        sqrtPriceLimitX96: BigInt(0),
+      },
+    ],
+  });
+  return { amountOut: (result[0] as bigint).toString() };
+}
+
 export class UniswapSwapProvider implements SwapProvider {
   name = "uniswap" as const;
 
@@ -129,6 +157,7 @@ export class UniswapSwapProvider implements SwapProvider {
 
     return {
       provider: "uniswap",
+      via: "swaprouter02",
       txHash,
       amountOut: amountOut.toString(),
       explorerUrl: `https://sepolia.basescan.org/tx/${txHash}`,

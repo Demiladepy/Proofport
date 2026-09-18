@@ -51,9 +51,22 @@ type RailStatus = {
   reputationContract: string;
   walletsNote: string;
   swapProvider: string;
+  swapLabel?: string;
+  swapRouter?: string;
   uniswapLive?: boolean;
+  tradingApi?: boolean;
   x402Mode: string;
   partner: string;
+  dynamic?: {
+    envReady: boolean;
+    wsl: boolean;
+    webhookCreds: boolean;
+    webhookSecret?: boolean;
+    signer: "wsl_mpc" | "local_viem";
+    note: string;
+    mpcAddress?: string;
+    mpcEth?: string;
+  };
 };
 
 const ALL_IDENTITY = [
@@ -78,88 +91,84 @@ const PIPELINE = [
     label: "Issue",
     agent: "Proof",
     honesty: "sim" as const,
-    honestyLabel: "ID issuer = SIMULATED",
+    honestyLabel: "Demo identity",
   },
   {
     id: "proof",
     label: "Disclose",
     agent: "Proof",
     honesty: "live" as const,
-    honestyLabel: "Selective disclosure = LIVE",
+    honestyLabel: "Private proof",
   },
   {
     id: "capability",
     label: "Bound",
     agent: "Both",
     honesty: "live" as const,
-    honestyLabel: "Capability denial = LIVE",
+    honestyLabel: "Agents cannot cross",
   },
   {
     id: "swap",
     label: "Swap",
     agent: "Execution",
-    honesty: "sim" as const,
-    honestyLabel: "Swap = SIMULATED (mock)",
-    liveLabel: "Swap = LIVE (Base Sepolia Uniswap)",
+    honesty: "live" as const,
+    honestyLabel: "Uniswap on Base Sepolia",
+    liveLabel: "Uniswap on Base Sepolia",
   },
   {
     id: "x402",
     label: "Pay",
     agent: "Execution",
     honesty: "mixed" as const,
-    honestyLabel: "x402 = LIVE header / SIMULATED result",
+    honestyLabel: "Payment header",
   },
   {
     id: "reputation",
     label: "Attest",
     agent: "Orchestrator",
     honesty: "live" as const,
-    honestyLabel: "Onchain attestation = LIVE (Base Sepolia)",
+    honestyLabel: "Onchain hash",
   },
   {
     id: "handoff",
     label: "Hand off",
     agent: "Execution",
     honesty: "sim" as const,
-    honestyLabel: "Partner/bank = SIMULATED",
+    honestyLabel: "Bank stays off our books",
   },
 ] as const;
 
 const HONESTY_LEGEND = [
-  { honesty: "sim", text: "ID issuer = SIMULATED" },
-  { honesty: "sim", text: "Swap = SIMULATED (mock)" },
-  { honesty: "sim", text: "Partner/bank = SIMULATED" },
-  { honesty: "live", text: "Selective disclosure = LIVE" },
-  { honesty: "live", text: "Capability denial = LIVE" },
-  { honesty: "live", text: "Onchain attestation = LIVE (Base Sepolia)" },
-  { honesty: "mixed", text: "x402 = LIVE header / SIMULATED result" },
-] as const;
-
-const PLAN_IDLE = [
-  { agent: "proof", tool: "get_credentials" },
-  { agent: "proof", tool: "present_proof" },
-  { agent: "proof", tool: "attempt_swap" },
-  { agent: "execution", tool: "attempt_read_credential" },
-  { agent: "execution", tool: "swap" },
-  { agent: "execution", tool: "pay_x402" },
-  { agent: "orchestrator", tool: "write_attestation" },
-  { agent: "execution", tool: "request_handoff" },
+  { honesty: "sim", text: "Identity issuer: demo (no government ID)" },
+  { honesty: "live", text: "Swap: Uniswap, Base Sepolia" },
+  { honesty: "sim", text: "Bank payout: not sent from this app" },
+  { honesty: "live", text: "Credit hash: live onchain" },
 ] as const;
 
 const DENIALS_IDLE = [
   {
-    agent: "proof",
-    tool: "attempt_swap",
-    why: "Proof agent has no fund tools",
+    agent: "Proof",
+    line: "Cannot swap or send funds",
     color: "#0090ff",
   },
   {
-    agent: "execution",
-    tool: "attempt_read_credential",
-    why: "Execution agent never sees claims",
+    agent: "Execution",
+    line: "Cannot read name, ID, or country",
     color: "#9f4fff",
   },
 ] as const;
+
+function BrandMark({ className }: { className: string }) {
+  return (
+    <img
+      className={className}
+      src="/proofport-mark.png"
+      alt="Proofport"
+      width={72}
+      height={88}
+    />
+  );
+}
 
 function shortAddr(addr: string) {
   return `${addr.slice(0, 6)}…${addr.slice(-4)}`;
@@ -349,7 +358,13 @@ export default function Home() {
     | undefined;
 
   const swapOut = result?.toolCalls?.find((t) => t.toolName === "swap")?.output as
-    | { txHash?: string; explorerUrl?: string; provider?: string; note?: string }
+    | {
+        txHash?: string;
+        explorerUrl?: string;
+        provider?: string;
+        via?: string;
+        note?: string;
+      }
     | undefined;
 
   const payOut = result?.toolCalls?.find((t) => t.toolName === "pay_x402")
@@ -409,7 +424,11 @@ export default function Home() {
         const json = (await list.json()) as {
           items?: { subject: string; attestedAt: string; creditEligible: boolean }[];
         };
-        if (Array.isArray(json.items)) setRecentAttestations(json.items);
+        if (Array.isArray(json.items)) {
+          setRecentAttestations(
+            json.items.filter((item) => item.creditEligible),
+          );
+        }
       } catch {
         /* list is optional */
       }
@@ -443,25 +462,22 @@ export default function Home() {
   }
 
   const disclosed = new Set(presentOut?.disclosed ?? []);
-  const toolCalls = result?.toolCalls ?? [];
   const openCount = disclosed.size;
   const doneCount = Object.values(beatDone).filter(Boolean).length;
   const explorer = rail?.explorerBase ?? "https://sepolia.basescan.org";
-  const swapTrackLive = Boolean(rail?.uniswapLive);
+  const swapRouter =
+    rail?.swapRouter ?? "0x94cC0AaC535CCDB3C01d6787D6413C739ae12bc4";
+  const swapTrackLive = rail?.uniswapLive !== false;
   const swapBeatLive = hasRun
     ? swapOut?.provider === "uniswap"
     : swapTrackLive;
-  const honestyLegend = HONESTY_LEGEND.map((row) =>
-    row.text.startsWith("Swap")
-      ? {
-          ...row,
-          honesty: swapTrackLive ? ("live" as const) : row.honesty,
-          text: swapTrackLive
-            ? "Swap = LIVE (Base Sepolia Uniswap)"
-            : "Swap = SIMULATED (mock)",
-        }
-      : row,
-  );
+  const swapFallbackNote =
+    hasRun &&
+    swapOut?.provider &&
+    swapOut.provider !== "uniswap"
+      ? "Uniswap quote failed, used internal fallback."
+      : null;
+  const honestyLegend = HONESTY_LEGEND;
   const authorityOn = Boolean(delegation?.granted);
   const authorityLocked = delegation !== null && !delegation.granted;
 
@@ -472,7 +488,7 @@ export default function Home() {
         aria-label="Proofport"
       >
         <div className="pp-nav-brand">
-          <div className="pp-nav-mark" aria-hidden="true" />
+          <BrandMark className="pp-nav-mark" />
           <p className="pp-nav-name">Proofport</p>
         </div>
         <div className="pp-nav-links">
@@ -590,8 +606,8 @@ export default function Home() {
             <span>06</span>
             <strong>Partner hand-off</strong>
             <p>
-              Licensed-partner mock re-verifies the presentation. Status is
-              settlement_initiated. No fiat moves here.
+              A licensed partner would re-verify the proof. We stop at
+              settlement_initiated. No naira leaves this app.
             </p>
           </li>
         </ol>
@@ -606,10 +622,9 @@ export default function Home() {
             delegation. Cannot touch funds.
           </p>
           <ul>
-            <li>get_credentials</li>
-            <li>present_proof</li>
-            <li>check_delegation</li>
-            <li className="deny">attempt_swap (hard deny)</li>
+            <li>Present proof</li>
+            <li>Check authority</li>
+            <li className="deny">Cannot swap or send funds</li>
           </ul>
           {rail && (
             <a
@@ -630,10 +645,10 @@ export default function Home() {
             hand-off. Cannot read credentials.
           </p>
           <ul>
-            <li>swap</li>
-            <li>pay_x402</li>
-            <li>request_handoff</li>
-            <li className="deny">attempt_read_credential (hard deny)</li>
+            <li>Swap on Uniswap</li>
+            <li>Pay the compliance fee</li>
+            <li>Request hand-off</li>
+            <li className="deny">Cannot read name, ID, or country</li>
           </ul>
           {rail && (
             <a
@@ -668,22 +683,34 @@ export default function Home() {
           </div>
           <div>
             <span>Swap</span>
-            <strong>{rail.swapProvider}</strong>
+            <strong>
+              <a
+                href={`${explorer}/address/${swapRouter}`}
+                target="_blank"
+                rel="noreferrer"
+              >
+                {rail.swapLabel ?? "Uniswap V3 on Base Sepolia"}
+              </a>
+            </strong>
           </div>
           <div>
-            <span>x402</span>
-            <strong>{rail.x402Mode}</strong>
+            <span>Authority</span>
+            <strong>
+              {rail.dynamic?.signer === "wsl_mpc"
+                ? "Dynamic MPC (WSL)"
+                : "Dynamic grant; local signer"}
+            </strong>
           </div>
           <div>
-            <span>Partner</span>
+            <span>Bank</span>
             <strong>{rail.partner}</strong>
           </div>
         </section>
       )}
 
       <section className="pp-ask" id="demo" aria-label="Run the cash-out" data-reveal>
-        <p className="pp-section-kicker">Live demo</p>
-        <ul className="pp-honesty" aria-label="Simulated versus live">
+        <p className="pp-section-kicker">What is real on this run</p>
+        <ul className="pp-honesty" aria-label="What is real on this run">
           {honestyLegend.map((row) => (
             <li key={row.text} data-honesty={row.honesty}>
               {row.text}
@@ -694,6 +721,7 @@ export default function Home() {
         <p className="pp-ask-lead">
           Two agents split by capability. Private proof, public hash, revocable
           authority. The bank stays off our books on purpose. Grant, then run.
+          {rail?.dynamic?.note ? ` ${rail.dynamic.note}` : ""}
         </p>
         <div className="pp-fields">
           <label>
@@ -780,11 +808,17 @@ export default function Home() {
                 <span
                   className="pp-honesty-pill"
                   data-honesty={
-                    beat.id === "swap" && swapBeatLive ? "live" : beat.honesty
+                    beat.id === "swap"
+                      ? swapBeatLive
+                        ? "live"
+                        : "sim"
+                      : beat.honesty
                   }
                 >
-                  {beat.id === "swap" && swapBeatLive
-                    ? beat.liveLabel
+                  {beat.id === "swap"
+                    ? swapBeatLive
+                      ? beat.liveLabel
+                      : "Internal fallback"
                     : beat.honestyLabel}
                 </span>
               )}
@@ -880,7 +914,7 @@ export default function Home() {
                           presentOut?.disclosedClaims?.[claim.key] ?? "yes",
                         )
                       : hasRun
-                        ? "Locked"
+                        ? "Private"
                         : claim.idle}
                   </span>
                 </li>
@@ -895,19 +929,21 @@ export default function Home() {
         <section className="pp-module pp-module-dark">
           <h2 className="pp-module-title">Capability block</h2>
           <p className="pp-module-lead">
-            Denied in the tool registry, not by prompt.
+            Each agent is missing a power on purpose. Code throws. Not a prompt.
           </p>
           <ul className="pp-rows">
             {(capabilityBlocks.length
               ? capabilityBlocks.map((b, i) => ({
-                  agent: b.agent ?? "?",
-                  tool: b.toolName,
-                  why: "capability denied",
+                  agent: b.agent === "proof" ? "Proof" : "Execution",
+                  line:
+                    b.toolName === "attempt_swap"
+                      ? "Cannot swap or send funds"
+                      : "Cannot read name, ID, or country",
                   color: ["#0090ff", "#9f4fff"][i % 2],
                 }))
               : DENIALS_IDLE
             ).map((b) => (
-              <li key={`${b.agent}-${b.tool}`} className="pp-row">
+              <li key={`${b.agent}-${b.line}`} className="pp-row">
                 <div className="pp-row-main">
                   <span
                     className="pp-row-dot"
@@ -918,12 +954,12 @@ export default function Home() {
                     aria-hidden="true"
                   />
                   <span className="pp-row-name">
-                    {b.agent}-agent
-                    <em>{b.tool}</em>
+                    {b.agent} agent
+                    <em>{b.line}</em>
                   </span>
                 </div>
                 <span className="pp-row-meta">
-                  {capabilityBlocks.length ? "Denied" : "Will deny"}
+                  {capabilityBlocks.length ? "Blocked" : "Will block"}
                 </span>
               </li>
             ))}
@@ -1003,7 +1039,7 @@ export default function Home() {
                     {item.creditEligible ? (
                       <a href={`/lender?subject=${item.subject}`}>Lender</a>
                     ) : (
-                      "empty"
+                      "not on chain yet"
                     )}
                   </span>
                 </li>
@@ -1012,32 +1048,24 @@ export default function Home() {
           )}
         </section>
 
-        <section className="pp-module pp-module-plan">
-          <h2 className="pp-module-title">Orchestrator plan</h2>
-          <ol className="pp-plan">
-            {(toolCalls.length
-              ? toolCalls.map((t) => ({
-                  agent: t.agent ?? "",
-                  tool: t.toolName,
-                }))
-              : PLAN_IDLE
-            ).map((t, i) => (
-              <li key={`${t.tool}-${i}`}>
-                <span>{String(i + 1).padStart(2, "0")}</span>
-                {t.agent ? `${t.agent}:` : ""}
-                {t.tool}
-              </li>
-            ))}
-          </ol>
-        </section>
-
         <section className="pp-module pp-module-settle">
           <h2 className="pp-module-title">Settlement</h2>
           <div className="pp-kv">
             <div>
               <span>Swap</span>
-              <strong>{swapOut?.provider ?? "ETH to USDC (pending)"}</strong>
-              {swapOut?.note && <p className="muted">{swapOut.note}</p>}
+              <strong>
+                {swapOut?.provider === "uniswap"
+                  ? swapOut.via === "trading-api"
+                    ? "Uniswap Trading API on Base Sepolia"
+                    : "Uniswap V3 on Base Sepolia"
+                  : swapOut?.provider
+                    ? "Internal fallback"
+                    : "ETH to USDC (pending)"}
+              </strong>
+              {swapFallbackNote && <p className="muted">{swapFallbackNote}</p>}
+              {swapOut?.note && swapOut.provider === "uniswap" && (
+                <p className="muted">{swapOut.note}</p>
+              )}
             </div>
             <div>
               <span>x402 self-pay</span>
@@ -1062,8 +1090,7 @@ export default function Home() {
         <div className="pp-footer-inner">
           <div className="pp-footer-brand">
             <div className="pp-footer-logo" aria-hidden="true">
-              <div className="pp-footer-mark" />
-              <span className="pp-footer-petal" />
+              <BrandMark className="pp-footer-mark" />
             </div>
             <div>
               <p className="pp-footer-name">Proofport</p>
@@ -1150,7 +1177,11 @@ export default function Home() {
                     </a>
                   </li>
                   <li>
-                    <span>Runtime · Bankr × Propaganda</span>
+                    <span>
+                      {rail?.dynamic?.signer === "wsl_mpc"
+                        ? "Dynamic MPC via WSL"
+                        : "Dynamic grant on Windows"}
+                    </span>
                   </li>
                   <li>
                     <span>No PII onchain</span>

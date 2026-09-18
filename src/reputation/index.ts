@@ -215,6 +215,7 @@ export async function listAttestations(
       args: [i],
     })) as Hex;
     const rec = await readAttestation(subject);
+    if (rec.attestedAt === 0n) continue;
     items.push({ subject, ...rec });
   }
   return items;

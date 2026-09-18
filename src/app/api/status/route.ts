@@ -39,6 +39,11 @@ export async function GET() {
     reputationContract = j.address;
   }
 
+  const { getSwapRailInfo } = await import("@/swap");
+  const { getDynamicRailStatus } = await import("@/wallet/dynamic-status");
+  const dynamic = await getDynamicRailStatus();
+  const swap = getSwapRailInfo();
+
   return NextResponse.json({
     chain: "Base Sepolia",
     explorerBase: "https://sepolia.basescan.org",
@@ -46,9 +51,13 @@ export async function GET() {
     executionWallet,
     reputationContract,
     walletsNote,
-    swapProvider: process.env.SWAP_PROVIDER ?? "auto",
-    uniswapLive: process.env.UNISWAP_LIVE === "true",
-    x402Mode: "manual_header_retry",
-    partner: "Mock licensed partner (no fiat)",
+    swapProvider: swap.swapProvider,
+    swapLabel: swap.swapLabel,
+    swapRouter: swap.swapRouter,
+    uniswapLive: swap.uniswapLive,
+    tradingApi: swap.tradingApi,
+    x402Mode: "Payment header retry",
+    partner: "Not sent from this app",
+    dynamic,
   });
 }

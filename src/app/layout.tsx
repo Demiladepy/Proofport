@@ -18,6 +18,9 @@ export const metadata: Metadata = {
   title: "Proofport",
   description:
     "Onchain credit and reputation rail. Selective disclosure, two bounded agents, PII-free attestation.",
+  icons: {
+    icon: "/proofport-mark.png",
+  },
 };
 
 export default function RootLayout({ children }: LayoutProps<"/">) {

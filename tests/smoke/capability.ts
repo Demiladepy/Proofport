@@ -5,7 +5,8 @@ import { grantDelegation } from "../../src/delegation";
 
 async function main() {
   grantDelegation({ mode: "app_level_fallback" });
-  process.env.SWAP_PROVIDER = process.env.SWAP_PROVIDER ?? "mock";
+  process.env.SWAP_PROVIDER = "mock";
+  process.env.UNISWAP_LIVE = "false";
 
   let proofDenied = false;
   let proofMsg = "";

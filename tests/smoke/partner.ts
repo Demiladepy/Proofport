@@ -9,7 +9,8 @@ import { present, ensureDemoCredentials, verify } from "../../src/credentials";
 
 async function main() {
   grantDelegation({ mode: "app_level_fallback" });
-  process.env.SWAP_PROVIDER = process.env.SWAP_PROVIDER ?? "mock";
+  process.env.SWAP_PROVIDER = "mock";
+  process.env.UNISWAP_LIVE = "false";
 
   const run = await runOrchestrator("cash out my reward to Zenith");
   const handoff = run.handoff as { status?: string } | undefined;

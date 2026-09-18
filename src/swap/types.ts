@@ -8,6 +8,7 @@ export type SwapRequest = {
 
 export type SwapResult = {
   provider: "uniswap" | "mock";
+  via?: "trading-api" | "swaprouter02";
   txHash: Hex | `mock_${string}`;
   amountOut: string;
   explorerUrl?: string;

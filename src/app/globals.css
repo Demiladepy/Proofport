@@ -187,29 +187,9 @@ a:hover {
 .pp-nav-mark {
   width: 32px;
   height: 32px;
-  border-radius: 42%;
-  background: var(--color-sky-blue);
-  border: 1.5px solid var(--color-heading-charcoal);
-  position: relative;
+  object-fit: contain;
   flex-shrink: 0;
-}
-
-.pp-nav-mark::before,
-.pp-nav-mark::after {
-  content: "";
-  position: absolute;
-  top: 11px;
-  width: 4px;
-  height: 4px;
-  border-radius: 50%;
-  background: var(--color-heading-charcoal);
-}
-
-.pp-nav-mark::before {
-  left: 8px;
-}
-.pp-nav-mark::after {
-  right: 8px;
+  display: block;
 }
 
 .pp-nav-name {
@@ -684,8 +664,6 @@ a.pp-btn-dark:hover {
 
 .pp-agent-card li.deny {
   color: var(--color-muted-gray);
-  text-decoration: line-through;
-  text-decoration-color: color-mix(in srgb, var(--color-muted-gray) 50%, transparent);
 }
 
 .pp-agent-card-dark {
@@ -736,7 +714,7 @@ a.pp-btn-dark:hover {
 
 @media (min-width: 900px) {
   .pp-rail {
-    grid-template-columns: repeat(5, 1fr);
+    grid-template-columns: repeat(6, minmax(0, 1fr));
   }
 }
 
@@ -1187,49 +1165,16 @@ a.pp-btn-dark:hover {
 
 .pp-footer-logo {
   position: relative;
-  width: 108px;
-  height: 108px;
+  width: 72px;
+  height: 88px;
   flex-shrink: 0;
 }
 
 .pp-footer-mark {
-  width: 96px;
-  height: 96px;
-  border-radius: 42%;
-  background: var(--color-sky-blue);
-  border: 2px solid var(--color-heading-charcoal);
-  position: relative;
-}
-
-.pp-footer-mark::before,
-.pp-footer-mark::after {
-  content: "";
-  position: absolute;
-  top: 34px;
-  width: 10px;
-  height: 10px;
-  border-radius: 50%;
-  background: var(--color-heading-charcoal);
-}
-
-.pp-footer-mark::before {
-  left: 24px;
-}
-
-.pp-footer-mark::after {
-  right: 24px;
-}
-
-.pp-footer-petal {
-  position: absolute;
-  right: 0;
-  bottom: 8px;
-  width: 28px;
-  height: 28px;
-  border-radius: 9px;
-  background: var(--color-sun-yellow);
-  border: 1.5px solid var(--color-heading-charcoal);
-  transform: rotate(18deg);
+  width: 72px;
+  height: 88px;
+  object-fit: contain;
+  display: block;
 }
 
 .pp-footer-groups {
@@ -1319,10 +1264,6 @@ a.pp-btn-dark:hover {
     grid-row: 1 / span 3;
   }
 
-  .pp-module-plan {
-    grid-column: 1 / -1;
-  }
-
   .pp-module-settle {
     grid-column: 1 / -1;
   }
@@ -1338,13 +1279,8 @@ a.pp-btn-dark:hover {
     grid-row: 1 / span 2;
   }
 
-  .pp-module-plan {
-    grid-column: 2;
-    grid-row: 2;
-  }
-
   .pp-module-settle {
-    grid-column: 3;
+    grid-column: 2 / -1;
     grid-row: 2;
   }
 }
@@ -1533,8 +1469,6 @@ a.pp-btn-dark:hover {
 
 .pp-row-locked .pp-row-name {
   color: var(--color-muted-gray);
-  text-decoration: line-through;
-  text-decoration-color: color-mix(in srgb, var(--color-muted-gray) 55%, transparent);
 }
 
 .pp-row-locked .pp-row-dot {
@@ -1659,7 +1593,7 @@ a.pp-btn-dark:hover {
 }
 
 .pp-footer-mark {
-  animation: floaty 6s var(--ease-in-out) infinite;
+  animation: none;
 }
 
 .pp-motion [data-reveal] {

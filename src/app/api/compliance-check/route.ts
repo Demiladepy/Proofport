@@ -6,7 +6,9 @@
 import { NextRequest, NextResponse } from "next/server";
 
 const PRICE = process.env.X402_PRICE ?? "$0.001";
-const PAY_TO = process.env.X402_PAY_TO ?? "0x0000000000000000000000000000000000000001";
+const PAY_TO =
+  process.env.X402_PAY_TO ??
+  "0x0afC983C15444DFDaaD76aBF22f1D1053035AE67";
 const NETWORK = "eip155:84532";
 
 function complianceBody() {

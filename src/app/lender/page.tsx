@@ -70,7 +70,13 @@ function LenderInner() {
     <div className="pp-shell">
       <nav className="pp-nav" aria-label="Lender">
         <div className="pp-nav-brand">
-          <div className="pp-nav-mark" aria-hidden="true" />
+          <img
+            className="pp-nav-mark"
+            src="/proofport-mark.png"
+            alt=""
+            width={32}
+            height={32}
+          />
           <p className="pp-nav-name">Proofport</p>
         </div>
         <a className="pp-link-demo" href="/">
