@@ -273,6 +273,15 @@ a:hover {
   .pp-nav-center {
     display: none;
   }
+  .pp-nav-actions {
+    width: 100%;
+    justify-content: flex-start;
+    flex-wrap: wrap;
+  }
+  .pp-nav-links {
+    order: 3;
+    width: 100%;
+  }
 }
 
 .pp-status {
@@ -361,6 +370,13 @@ a:hover {
   padding: 0 14px;
   cursor: pointer;
   transition: transform 0.15s ease, filter 0.15s ease;
+}
+
+.pp-btn-dark:focus-visible,
+.pp-btn-sand:focus-visible,
+.pp-footer-run:focus-visible {
+  outline: 2px solid var(--color-ink-black);
+  outline-offset: 3px;
 }
 
 .pp-btn-dark:hover:not(:disabled) {
@@ -469,6 +485,8 @@ a:hover {
   height: 72px;
   margin: 0 auto;
   width: min(100%, 240px);
+  overflow: hidden;
+  z-index: 0;
 }
 
 @media (min-width: 900px) {
@@ -480,6 +498,8 @@ a:hover {
 }
 
 .pp-hero-center {
+  position: relative;
+  z-index: 1;
   text-align: center;
   max-width: 460px;
   margin: 0 auto;
