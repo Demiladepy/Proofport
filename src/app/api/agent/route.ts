@@ -1,20 +1,39 @@
 import { NextRequest, NextResponse } from "next/server";
 import { runOrchestrator } from "@/orchestrator";
-import { grantDelegation, loadDelegation } from "@/delegation";
+import {
+  DELEGATION_COOKIE,
+  loadDelegation,
+  parseDelegationJson,
+  setRequestDelegation,
+} from "@/delegation";
 
 export async function POST(req: NextRequest) {
-  const body = (await req.json()) as { message?: string };
-  const message = body.message?.trim();
-  if (!message) {
-    return NextResponse.json({ error: "message required" }, { status: 400 });
-  }
-
-  const del = loadDelegation();
-  if (!del.revokedAt && !del.granted) {
-    grantDelegation({ mode: del.mode });
-  }
+  const fromCookie = parseDelegationJson(
+    req.cookies.get(DELEGATION_COOKIE)?.value,
+  );
+  if (fromCookie) setRequestDelegation(fromCookie);
 
   try {
+    const body = (await req.json()) as { message?: string };
+    const message = body.message?.trim();
+    if (!message) {
+      return NextResponse.json({ error: "message required" }, { status: 400 });
+    }
+
+    const del = loadDelegation();
+    if (!del.granted) {
+      return NextResponse.json(
+        {
+          error: "authority revoked",
+          toolCalls: [],
+          capabilityBlocks: [],
+          text: "authority revoked",
+          mode: "blocked",
+        },
+        { status: 403 },
+      );
+    }
+
     const result = await runOrchestrator(message);
     return NextResponse.json(result);
   } catch (err) {
@@ -32,5 +51,7 @@ export async function POST(req: NextRequest) {
       );
     }
     return NextResponse.json({ error: msg }, { status: 500 });
+  } finally {
+    setRequestDelegation(null);
   }
 }

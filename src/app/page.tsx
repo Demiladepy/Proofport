@@ -220,6 +220,8 @@ export default function Home() {
   const [delegation, setDelegation] = useState<Delegation | null>(null);
   const [rail, setRail] = useState<RailStatus | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [authBusy, setAuthBusy] = useState<"grant" | "revoke" | null>(null);
+  const [scrolled, setScrolled] = useState(false);
   const inputRef = useRef<HTMLTextAreaElement>(null);
   const resultsRef = useRef<HTMLElement>(null);
 
@@ -235,6 +237,36 @@ export default function Home() {
       .then((data: RailStatus) => setRail(data))
       .catch(() => setRail(null));
   }, [refreshDelegation]);
+
+  useEffect(() => {
+    const onScroll = () => setScrolled(window.scrollY > 12);
+    onScroll();
+    window.addEventListener("scroll", onScroll, { passive: true });
+    return () => window.removeEventListener("scroll", onScroll);
+  }, []);
+
+  useEffect(() => {
+    const reduce = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+    const nodes = document.querySelectorAll<HTMLElement>("[data-reveal]");
+    if (reduce) {
+      nodes.forEach((n) => n.classList.add("is-in"));
+      return;
+    }
+    document.documentElement.classList.add("pp-motion");
+    const io = new IntersectionObserver(
+      (entries) => {
+        for (const entry of entries) {
+          if (entry.isIntersecting) {
+            entry.target.classList.add("is-in");
+            io.unobserve(entry.target);
+          }
+        }
+      },
+      { threshold: 0.14, rootMargin: "0px 0px -10% 0px" },
+    );
+    nodes.forEach((n) => io.observe(n));
+    return () => io.disconnect();
+  }, [rail]);
 
   const presentOut = result?.toolCalls?.find((t) => t.toolName === "present_proof")
     ?.output as
@@ -305,22 +337,26 @@ export default function Home() {
     }
   }, [message, running, refreshDelegation]);
 
-  async function revoke() {
-    const res = await fetch("/api/delegation", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ action: "revoke" }),
-    });
-    setDelegation(await res.json());
-  }
-
-  async function grant() {
-    const res = await fetch("/api/delegation", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ action: "grant" }),
-    });
-    setDelegation(await res.json());
+  async function setAuthority(action: "grant" | "revoke") {
+    if (authBusy) return;
+    setAuthBusy(action);
+    setError(null);
+    try {
+      const res = await fetch("/api/delegation", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ action }),
+      });
+      const data = (await res.json()) as Delegation;
+      if (!res.ok) {
+        throw new Error("Could not update authority");
+      }
+      setDelegation(data);
+    } catch (e) {
+      setError(e instanceof Error ? e.message : String(e));
+    } finally {
+      setAuthBusy(null);
+    }
   }
 
   const disclosed = new Set(presentOut?.disclosed ?? []);
@@ -328,10 +364,15 @@ export default function Home() {
   const openCount = disclosed.size;
   const doneCount = Object.values(beatDone).filter(Boolean).length;
   const explorer = rail?.explorerBase ?? "https://sepolia.basescan.org";
+  const authorityOn = Boolean(delegation?.granted);
+  const authorityLocked = delegation !== null && !delegation.granted;
 
   return (
     <div className="pp-shell">
-      <nav className="pp-nav" aria-label="Proofport">
+      <nav
+        className={scrolled ? "pp-nav pp-nav-stuck" : "pp-nav"}
+        aria-label="Proofport"
+      >
         <div className="pp-nav-brand">
           <div className="pp-nav-mark" aria-hidden="true" />
           <p className="pp-nav-name">Proofport</p>
@@ -344,15 +385,32 @@ export default function Home() {
         <div className="pp-nav-actions">
           <span
             className="pp-status"
-            data-on={delegation?.granted ? "true" : "false"}
+            data-on={authorityOn ? "true" : "false"}
+            aria-live="polite"
           >
-            {delegation?.granted ? "Authority on" : "Revoked"}
+            {delegation === null
+              ? "Checking"
+              : authorityOn
+                ? "Authority on"
+                : "Revoked"}
           </span>
-          <button type="button" className="pp-btn-ghost" onClick={grant}>
-            Grant
+          <button
+            type="button"
+            className="pp-btn-sand"
+            aria-pressed={authorityOn}
+            disabled={authBusy !== null}
+            onClick={() => void setAuthority("grant")}
+          >
+            {authBusy === "grant" ? "Granting" : "Grant"}
           </button>
-          <button type="button" className="pp-btn-ghost danger" onClick={revoke}>
-            Revoke
+          <button
+            type="button"
+            className="pp-btn-sand pp-btn-revoke"
+            aria-pressed={!authorityOn && delegation !== null}
+            disabled={authBusy !== null}
+            onClick={() => void setAuthority("revoke")}
+          >
+            {authBusy === "revoke" ? "Revoking" : "Revoke"}
           </button>
         </div>
       </nav>
@@ -377,7 +435,7 @@ export default function Home() {
         <HeroArtRight />
       </header>
 
-      <section className="pp-how" id="how">
+      <section className="pp-how" id="how" data-reveal>
         <p className="pp-section-kicker">What actually happens</p>
         <h2 className="pp-section-title">Six steps, two agents, one boolean</h2>
         <ol className="pp-how-grid">
@@ -432,7 +490,7 @@ export default function Home() {
         </ol>
       </section>
 
-      <section className="pp-agents" id="agents">
+      <section className="pp-agents" id="agents" data-reveal>
         <article className="pp-agent-card">
           <p className="pp-section-kicker">Proof agent</p>
           <h3>Credentials only</h3>
@@ -484,7 +542,7 @@ export default function Home() {
       </section>
 
       {rail && (
-        <section className="pp-rail" aria-label="Live rail">
+        <section className="pp-rail" aria-label="Live rail" data-reveal>
           <div>
             <span>Chain</span>
             <strong>{rail.chain}</strong>
@@ -516,7 +574,7 @@ export default function Home() {
         </section>
       )}
 
-      <section className="pp-ask" id="demo" aria-label="Run the cash-out">
+      <section className="pp-ask" id="demo" aria-label="Run the cash-out" data-reveal>
         <p className="pp-section-kicker">Live demo</p>
         <h2 className="pp-section-title">Cash-out wedge</h2>
         <p className="pp-ask-lead">
@@ -541,12 +599,12 @@ export default function Home() {
           <button
             type="button"
             className="pp-btn-dark pp-btn-lg"
-            disabled={running || Boolean(delegation?.revokedAt)}
+            disabled={running || authorityLocked}
             onClick={() => void run()}
           >
             {running
               ? "Running pipeline"
-              : delegation?.revokedAt
+              : authorityLocked
                 ? "Grant authority first"
                 : "Run cash-out"}
           </button>
@@ -610,7 +668,7 @@ export default function Home() {
         </div>
       )}
 
-      <main className="pp-modules" ref={resultsRef} id="results">
+      <main className="pp-modules" ref={resultsRef} id="results" data-reveal>
         <section className="pp-module pp-module-disclosure">
           <div className="pp-module-head">
             <h2 className="pp-module-title">Selective disclosure</h2>
@@ -808,11 +866,19 @@ export default function Home() {
         </section>
       </main>
 
-      <footer className="pp-footer">
+      <footer className="pp-footer" data-reveal>
         <div className="pp-footer-inner">
-          <div className="pp-footer-logo" aria-hidden="true">
-            <div className="pp-footer-mark" />
-            <span className="pp-footer-petal" />
+          <div className="pp-footer-brand">
+            <div className="pp-footer-logo" aria-hidden="true">
+              <div className="pp-footer-mark" />
+              <span className="pp-footer-petal" />
+            </div>
+            <div>
+              <p className="pp-footer-name">Proofport</p>
+              <p className="pp-footer-tag">
+                Prove privately. Move funds on a boolean.
+              </p>
+            </div>
           </div>
           <nav aria-label="Footer">
             <ul className="pp-footer-groups">

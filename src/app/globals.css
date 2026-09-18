@@ -83,6 +83,12 @@
   --shadow-inset: inset 0 0 0 1px #f2f0ed;
   --shadow-dark-card: 0 0 24px 0 rgba(0, 0, 0, 0.15);
   --shadow-sm: 0 1px 6px 0 rgba(0, 0, 0, 0.04), 0 0 24px 0 rgba(0, 0, 0, 0.05);
+
+  --duration-fast: 120ms;
+  --duration-default: 200ms;
+  --duration-slow: 320ms;
+  --ease-out: cubic-bezier(0, 0, 0.2, 1);
+  --ease-in-out: cubic-bezier(0.4, 0, 0.2, 1);
 }
 
 @theme inline {
@@ -159,7 +165,17 @@ a:hover {
   gap: var(--spacing-16);
   margin-bottom: var(--spacing-48);
   min-height: 48px;
-  animation: rise 0.45s ease both;
+  position: sticky;
+  top: 0;
+  z-index: 40;
+  padding: 12px 0;
+  background: color-mix(in srgb, var(--color-cream-canvas) 88%, transparent);
+  backdrop-filter: blur(12px);
+  animation: rise 0.45s var(--ease-out) both;
+}
+
+.pp-nav-stuck {
+  box-shadow: 0 1px 0 var(--color-stone-surface);
 }
 
 .pp-nav-brand {
@@ -272,6 +288,9 @@ a:hover {
   letter-spacing: -0.01em;
   background: var(--color-sand);
   color: var(--color-heading-charcoal);
+  transition:
+    background var(--duration-default) var(--ease-in-out),
+    color var(--duration-default) var(--ease-in-out);
 }
 
 .pp-status::before {
@@ -349,6 +368,10 @@ a:hover {
   transform: translateY(-1px);
 }
 
+.pp-btn-dark:active:not(:disabled) {
+  transform: translateY(1px) scale(0.98);
+}
+
 .pp-btn-dark:disabled {
   opacity: 0.5;
   cursor: wait;
@@ -375,10 +398,38 @@ a:hover {
   font-weight: 600;
   padding: 0 14px;
   cursor: pointer;
+  transition:
+    transform var(--duration-fast) var(--ease-out),
+    filter var(--duration-fast) var(--ease-out),
+    background var(--duration-default) var(--ease-in-out),
+    color var(--duration-default) var(--ease-in-out);
 }
 
-.pp-btn-sand:hover {
+.pp-btn-sand:hover:not(:disabled) {
   filter: brightness(0.98);
+  transform: translateY(-1px);
+}
+
+.pp-btn-sand:active:not(:disabled) {
+  transform: translateY(1px) scale(0.98);
+}
+
+.pp-btn-sand:disabled {
+  opacity: 0.55;
+  cursor: wait;
+}
+
+.pp-btn-sand[aria-pressed="true"] {
+  background: color-mix(in srgb, var(--color-mint) 18%, white);
+}
+
+.pp-btn-revoke[aria-pressed="true"] {
+  background: color-mix(in srgb, var(--color-alert-red) 12%, white);
+  color: var(--color-alert-red);
+}
+
+.pp-btn-revoke:hover:not(:disabled) {
+  color: var(--color-alert-red);
 }
 
 .pp-link-demo {
@@ -975,6 +1026,31 @@ a.pp-btn-dark:hover {
   padding-bottom: var(--spacing-60);
 }
 
+.pp-footer-brand {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-16);
+  max-width: 240px;
+}
+
+.pp-footer-name {
+  margin: 0;
+  font-family: var(--font-family);
+  font-size: 36px;
+  font-weight: 500;
+  line-height: 1;
+  letter-spacing: -0.03em;
+  color: var(--color-ink-black);
+}
+
+.pp-footer-tag {
+  margin: 10px 0 0;
+  font-size: var(--text-caption);
+  line-height: var(--leading-caption);
+  letter-spacing: var(--tracking-caption);
+  color: var(--color-body-brown);
+}
+
 .pp-footer-logo {
   position: relative;
   width: 108px;
@@ -1144,7 +1220,6 @@ a.pp-btn-dark:hover {
   background: var(--color-pure-white);
   border-radius: var(--radius-cards);
   box-shadow: var(--shadow-inset);
-  animation: rise 0.65s ease both;
   min-width: 0;
 }
 
@@ -1203,20 +1278,20 @@ a.pp-btn-dark:hover {
   border-bottom: none;
 }
 
-.pp-module:nth-child(1) {
-  animation-delay: 0.08s;
+.pp-modules.is-in .pp-module:nth-child(1) {
+  animation: rise 0.55s var(--ease-out) both;
 }
-.pp-module:nth-child(2) {
-  animation-delay: 0.12s;
+.pp-modules.is-in .pp-module:nth-child(2) {
+  animation: rise 0.55s var(--ease-out) 0.06s both;
 }
-.pp-module:nth-child(3) {
-  animation-delay: 0.16s;
+.pp-modules.is-in .pp-module:nth-child(3) {
+  animation: rise 0.55s var(--ease-out) 0.12s both;
 }
-.pp-module:nth-child(4) {
-  animation-delay: 0.2s;
+.pp-modules.is-in .pp-module:nth-child(4) {
+  animation: rise 0.55s var(--ease-out) 0.18s both;
 }
-.pp-module:nth-child(5) {
-  animation-delay: 0.24s;
+.pp-modules.is-in .pp-module:nth-child(5) {
+  animation: rise 0.55s var(--ease-out) 0.24s both;
 }
 
 .pp-module-title {
@@ -1422,6 +1497,7 @@ a.pp-btn-dark:hover {
 .pp-mascot {
   position: absolute;
   border: 1.5px solid var(--color-heading-charcoal);
+  animation: floaty 5s var(--ease-in-out) infinite;
 }
 
 .pp-mascot-face::before,
@@ -1445,6 +1521,43 @@ a.pp-btn-dark:hover {
 .pp-confetti {
   position: absolute;
   border: 1.5px solid var(--color-heading-charcoal);
+  animation: floaty 3.6s var(--ease-in-out) infinite reverse;
+}
+
+.pp-footer-mark {
+  animation: floaty 6s var(--ease-in-out) infinite;
+}
+
+.pp-motion [data-reveal] {
+  opacity: 0;
+  transform: translateY(22px);
+  transition:
+    opacity 0.6s var(--ease-out),
+    transform 0.6s var(--ease-out);
+}
+
+.pp-motion [data-reveal].is-in {
+  opacity: 1;
+  transform: none;
+}
+
+.pp-motion [data-reveal].is-in .pp-how-grid li:nth-child(1) {
+  animation: rise 0.5s var(--ease-out) both;
+}
+.pp-motion [data-reveal].is-in .pp-how-grid li:nth-child(2) {
+  animation: rise 0.5s var(--ease-out) 0.06s both;
+}
+.pp-motion [data-reveal].is-in .pp-how-grid li:nth-child(3) {
+  animation: rise 0.5s var(--ease-out) 0.12s both;
+}
+.pp-motion [data-reveal].is-in .pp-how-grid li:nth-child(4) {
+  animation: rise 0.5s var(--ease-out) 0.18s both;
+}
+.pp-motion [data-reveal].is-in .pp-how-grid li:nth-child(5) {
+  animation: rise 0.5s var(--ease-out) 0.24s both;
+}
+.pp-motion [data-reveal].is-in .pp-how-grid li:nth-child(6) {
+  animation: rise 0.5s var(--ease-out) 0.3s both;
 }
 
 @keyframes rise {
@@ -1455,6 +1568,16 @@ a.pp-btn-dark:hover {
   to {
     opacity: 1;
     transform: none;
+  }
+}
+
+@keyframes floaty {
+  0%,
+  100% {
+    translate: 0 0;
+  }
+  50% {
+    translate: 0 -10px;
   }
 }
 
@@ -1476,7 +1599,18 @@ a.pp-btn-dark:hover {
   .pp-module,
   .pp-row-open,
   .pp-success,
-  .pp-beat-live {
+  .pp-beat-live,
+  .pp-mascot,
+  .pp-confetti,
+  .pp-footer-mark,
+  [data-reveal].is-in .pp-how-grid li,
+  .pp-modules.is-in .pp-module {
     animation: none;
+  }
+
+  [data-reveal] {
+    opacity: 1;
+    transform: none;
+    transition: none;
   }
 }

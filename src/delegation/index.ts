@@ -1,6 +1,8 @@
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 
+export const DELEGATION_COOKIE = "pp_delegation";
+
 export type DelegationState = {
   granted: boolean;
   mode: "dynamic" | "app_level_fallback";
@@ -11,6 +13,25 @@ export type DelegationState = {
   note?: string;
 };
 
+let requestOverride: DelegationState | null = null;
+
+export function setRequestDelegation(state: DelegationState | null) {
+  requestOverride = state;
+}
+
+export function parseDelegationJson(
+  raw: string | undefined | null,
+): DelegationState | null {
+  if (!raw) return null;
+  try {
+    const state = JSON.parse(raw) as DelegationState;
+    if (typeof state.granted !== "boolean") return null;
+    return state;
+  } catch {
+    return null;
+  }
+}
+
 function storePath() {
   return join(
     process.cwd(),
@@ -20,6 +41,7 @@ function storePath() {
 }
 
 export function loadDelegation(): DelegationState {
+  if (requestOverride) return requestOverride;
   const path = storePath();
   if (!existsSync(/* turbopackIgnore: true */ path)) {
     return {
@@ -35,11 +57,18 @@ export function loadDelegation(): DelegationState {
 }
 
 export function saveDelegation(state: DelegationState) {
-  const path = storePath();
-  mkdirSync(/* turbopackIgnore: true */ join(process.cwd(), ".data"), {
-    recursive: true,
-  });
-  writeFileSync(/* turbopackIgnore: true */ path, JSON.stringify(state, null, 2));
+  try {
+    const path = storePath();
+    mkdirSync(/* turbopackIgnore: true */ join(process.cwd(), ".data"), {
+      recursive: true,
+    });
+    writeFileSync(
+      /* turbopackIgnore: true */ path,
+      JSON.stringify(state, null, 2),
+    );
+  } catch {
+    // Vercel and other read-only filesystems still return the in-memory state.
+  }
 }
 
 export function grantDelegation(partial?: Partial<DelegationState>): DelegationState {
