@@ -1,4 +1,4 @@
-import { existsSync, readFileSync } from "node:fs";
+import { existsSync } from "node:fs";
 import { join } from "node:path";
 import { execFileSync } from "node:child_process";
 import { hasDynamicEnv } from "./dynamic";
@@ -59,35 +59,10 @@ export async function getDynamicRailStatus(): Promise<DynamicRailStatus> {
   const wsl = hasWsl();
   const webhookFile = join(process.cwd(), ".data", "dynamic-delegation-creds.json");
   const webhookCreds = existsSync(webhookFile);
-  const storePath = join(process.cwd(), ".data", "wallet.json");
-  const hasPersistedDynamic =
-    existsSync(storePath) &&
-    (() => {
-      try {
-        const j = JSON.parse(readFileSync(storePath, "utf8")) as {
-          mode?: string;
-          accountAddress?: string;
-        };
-        return j.mode === "dynamic" && Boolean(j.accountAddress);
-      } catch {
-        return false;
-      }
-    })();
-
   const webhookSecret = Boolean(process.env.DELEGATION_WEBHOOK_SECRET?.trim());
   const live = await probeWslSigner();
-  if (live?.ok && live.address) {
-    return {
-      envReady,
-      wsl,
-      webhookCreds,
-      webhookSecret,
-      signer: "wsl_mpc",
-      mpcAddress: live.address,
-      mpcEth: live.eth,
-      note: "Dynamic MPC via WSL. Value-moving txs use the funded execution wallet until this address has ETH.",
-    };
-  }
+  const blockedNote =
+    "Delegated authority (Grant/Revoke) is LIVE; Dynamic MPC minting is BLOCKED upstream (API timeout); execution signs with a bridged local key.";
 
   if (live?.ok) {
     return {
@@ -96,9 +71,7 @@ export async function getDynamicRailStatus(): Promise<DynamicRailStatus> {
       webhookCreds,
       webhookSecret,
       signer: "local_viem",
-      note: webhookSecret
-        ? "Dynamic WSL signer is up. Webhook secret is set. Cash-out still uses the bridged execution wallet until POST /create mints and funds an MPC address."
-        : "Dynamic WSL signer is up. Cash-out still uses the bridged execution wallet. POST /create on the signer to mint an MPC address, then fund it.",
+      note: blockedNote,
     };
   }
 
@@ -109,9 +82,7 @@ export async function getDynamicRailStatus(): Promise<DynamicRailStatus> {
       webhookCreds,
       webhookSecret,
       signer: "local_viem",
-      note: hasPersistedDynamic
-        ? "Dynamic env + WSL ready. Start the Linux signer to use Neon MPC. Cash-out still signs with the bridged execution wallet."
-        : "Dynamic credentials are set. Neon MPC needs the WSL signer running. Cash-out signs with the bridged execution wallet.",
+      note: blockedNote,
     };
   }
 
@@ -122,7 +93,7 @@ export async function getDynamicRailStatus(): Promise<DynamicRailStatus> {
       webhookCreds,
       webhookSecret,
       signer: "local_viem",
-      note: "Dynamic credentials are set. Neon MPC does not load on native Windows. Cash-out signs with the bridged execution wallet.",
+      note: blockedNote,
     };
   }
 

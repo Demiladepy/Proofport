@@ -154,7 +154,7 @@ async function main() {
       fromToken: "ETH",
       toToken: "USDC",
     });
-    report.swapRouter02Quote = { ok: true, amountOut: v3.amountOut };
+    report.swapRouter02Quote = { ok: true, amountOut: v3.amountOut, fee: v3.fee };
   } catch (err) {
     report.swapRouter02Quote = {
       ok: false,

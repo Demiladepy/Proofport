@@ -2,24 +2,33 @@
 
 Honesty ledger. Unlabeled mocks look like fraud. These are **choices** (legal, testnet, Windows), not laziness.
 
-| Boundary | Live / Simulated | Why |
-|----------|------------------|-----|
-| Identity / Provenance issuer (NIN/BVN stand-in) | **SIMULATED** | **Legal.** No real government issuer. Local mock keypair signs SD-JWT VCs. |
-| Licensed partner off-ramp / bank | **SIMULATED** | **Legal.** We are not a money transmitter. No fiat, no naira, no bank API. Returns `settlement_initiated` after proof verify. |
-| Uniswap swap | **LIVE** (tiny ETH→USDC on Base Sepolia) | **Testnet.** Cash-out tries the Trading API first when `UNISWAP_API_KEY` is set, then SwapRouter02. Sepolia Trading API quotes currently 404/timeout for this pair; SwapRouter02 is the fill that has confirmed: [`0xa6c9a6ac…097e20`](https://sepolia.basescan.org/tx/0xa6c9a6ac09b3ac702d509b8ccd67441d848ca763d3dae6b62c92fc337a097e20) and pipeline [`0x86916457…39448c5`](https://sepolia.basescan.org/tx/0x8691645781a0ca62d2f93a07d792e73bb1d0764f10c2dfa7ffc66127439448c5). Both live paths failing falls back to mock and must be labeled. |
-| Dual agent wallets | **local_viem on Windows** | **Windows.** Dynamic Node MPC (Neon) is darwin/linux only. Keys via `PROOF_AGENT_PRIVATE_KEY` / `EXECUTION_AGENT_PRIVATE_KEY`. WSL for a real Dynamic server wallet. |
-| Dynamic delegated-access MPC sign | **App-level grant/revoke** | **Windows.** Webhook exists; `delegatedSignTransaction` is not the live path on win32. |
-| x402 compliance-check fee | **LIVE header / SIMULATED result** | 402 → payment header → 200 is demonstrable. Body is `mock_compliance`. Not ExactEvmScheme settlement unless the facilitator path confirms. |
-| Compliance business logic | **SIMULATED** | Mock low-risk result after the header loop. |
-| Reputation attestation | **LIVE on Base Sepolia** | Custom `ReputationAttestation`: subject / kind / evidenceHash only. No PII in ABI. |
+This table **is** the claims-vs-reality audit. Every **LIVE** row has a receipt hash and/or file+line. No LIVE row without a citation.
+
+| # | Capability | Status | Citation |
+|---|------------|--------|----------|
+| 1 | SD-JWT selective disclosure (`present` / `verify`; name and ID withheld) | **LIVE** | [`src/credentials/index.ts`](src/credentials/index.ts) `present` L154–184, `verify` L194–216 |
+| 2 | Two-agent capability denials (proof cannot swap; execution cannot read credentials) | **LIVE** | Hard throw [`src/agents/capability.ts`](src/agents/capability.ts) `denyCapability` L17–22; wired in [`src/orchestrator/index.ts`](src/orchestrator/index.ts) L139–152 |
+| 3 | Reputation attestation write (subject / kind / evidenceHash; no PII in ABI) | **LIVE** | Contract `0xac188e1e9d624b346006dfe233290751165f2f16`. Writes: [`0xd546a412a54646441b33990c3bd91854e6fe65d04ee97ca7eb1a73979c7cdef8`](https://sepolia.basescan.org/tx/0xd546a412a54646441b33990c3bd91854e6fe65d04ee97ca7eb1a73979c7cdef8), [`0xbc34142f695e60d23499b06f7297853ca25ff70d57640046d696cef6adbbaccf`](https://sepolia.basescan.org/tx/0xbc34142f695e60d23499b06f7297853ca25ff70d57640046d696cef6adbbaccf), [`0x80ee434ab96990d012609985d1f9d514f704e30df70e8e8662908900ff076c3b`](https://sepolia.basescan.org/tx/0x80ee434ab96990d012609985d1f9d514f704e30df70e8e8662908900ff076c3b). Code: [`src/reputation/index.ts`](src/reputation/index.ts) `writeAttestation` L103, `attest` L137–142 |
+| 4 | Lender chain-only read (`/lender`, `GET /api/reputation`) | **LIVE** | [`src/app/lender/page.tsx`](src/app/lender/page.tsx); [`src/app/api/reputation/route.ts`](src/app/api/reputation/route.ts) GET L23–41; `readAttestation` [`src/reputation/index.ts`](src/reputation/index.ts) L169–189. Reads the same contract as row 3. |
+| 5 | Grant / Revoke delegated authority | **LIVE** (app-level cookie + file) | [`src/delegation/index.ts`](src/delegation/index.ts) `grantDelegation` L74, `revokeDelegation` L87, `assertDelegationActive` L99; [`src/app/api/delegation/route.ts`](src/app/api/delegation/route.ts) POST L31–50. **Not** Dynamic MPC. |
+| 6 | Uniswap V3 ETH→USDC on Base Sepolia | **LIVE** | SwapRouter02 `0x94cC0AaC535CCDB3C01d6787D6413C739ae12bc4`. Primary fill [`0xd4ddc55d5a6db1efe065fb6151712da244eb3a3aaa5908558b6a50e8721346d3`](https://sepolia.basescan.org/tx/0xd4ddc55d5a6db1efe065fb6151712da244eb3a3aaa5908558b6a50e8721346d3) (from `0x0afC983C15444DFDaaD76aBF22f1D1053035AE67`; pool sent `0.395801` USDC). Earlier fills [`0xa6c9a6ac09b3ac702d509b8ccd67441d848ca763d3dae6b62c92fc337a097e20`](https://sepolia.basescan.org/tx/0xa6c9a6ac09b3ac702d509b8ccd67441d848ca763d3dae6b62c92fc337a097e20), [`0x8691645781a0ca62d2f93a07d792e73bb1d0764f10c2dfa7ffc66127439448c5`](https://sepolia.basescan.org/tx/0x8691645781a0ca62d2f93a07d792e73bb1d0764f10c2dfa7ffc66127439448c5). Code: QuoterV2 [`src/swap/uniswap.ts`](src/swap/uniswap.ts) L74–88; `exactInputSingle` L190–194; `multicall(deadline)` L211–217. Mock only if that path throws, and then labeled ([`src/swap/index.ts`](src/swap/index.ts) L59–75). |
+| 7 | Execution-agent signing | **LIVE** local viem | Same sender as row 6/3: `0x0afC983C15444DFDaaD76aBF22f1D1053035AE67`. [`src/wallet/dual.ts`](src/wallet/dual.ts) `getExecutionPrivateKey` L32. Dual wallets: proof `0xab18207957208a31025306f08556893e2a15dBa9`, execution as above. |
+| 8 | Dynamic server-wallet mint / MPC sign | **BLOCKED upstream** | `getDynamicRailStatus` always returns `signer: "local_viem"` ([`src/wallet/dynamic-status.ts`](src/wallet/dynamic-status.ts) L57–108). `signTransaction` timed out with no HTTP body. No delegated `walletApiKey` / `keyShare`. [`0x2ebe2f1a68f1366d3809d720c1100f0feac90bf1d60eff4e64b5a5384fa09242`](https://sepolia.basescan.org/tx/0x2ebe2f1a68f1366d3809d720c1100f0feac90bf1d60eff4e64b5a5384fa09242) is the **local** key funding `0xA83850aB…`, not an MPC signature. Do not call this Dynamic MPC. |
+| 9 | x402 402 → payment header → 200 loop | **LIVE header / SIMULATED result** | Challenge + retry: [`src/payments/x402.ts`](src/payments/x402.ts) L86–135; [`src/app/api/compliance-check/route.ts`](src/app/api/compliance-check/route.ts) 402 L51–78. Body is `mock_compliance` (L14–21). |
+| 10 | x402 ExactEvmScheme on-chain settlement | **SIMULATED / not proven** | No facilitator settlement tx. Manual header retry is synthetic (`PAYMENT-SIGNATURE` demo JSON, [`src/payments/x402.ts`](src/payments/x402.ts) L109–116). |
+| 11 | Identity / provenance issuer (NIN/BVN stand-in) | **SIMULATED** | Legal. Local mock keypair issues SD-JWT VCs ([`src/credentials/index.ts`](src/credentials/index.ts) `issue` / `ensureDemoCredentials` L225–240). |
+| 12 | Licensed partner / bank / fiat off-ramp | **SIMULATED** | Legal. [`src/partner/index.ts`](src/partner/index.ts) `requestPartnerHandoff` L31–52 returns `settlement_initiated` from `MockLicensedPartner`. No fiat, no naira, no bank API. |
+| 13 | OpenAI claim pick (allowlisted `verified` / `country` / `over_18`) | **MIXED** | [`src/agents/proof-agent/select-claims.ts`](src/agents/proof-agent/select-claims.ts) L35–43 labeled fallback; L46–80 model path when `OPENAI_API_KEY` is set. Not an on-chain claim. |
+| 14 | Uniswap Trading API | **UNUSED** | Not on the auto path ([`src/swap/index.ts`](src/swap/index.ts) `tradingApi: false` L47). Base Sepolia ETH/USDC 404’d. Do not cite as live. |
 
 ## Explicitly not mocked (when gates pass)
 
 - SD-JWT selective disclosure cryptography (`@sd-jwt/sd-jwt-vc`)
-- Two-agent capability denials (tool-registry hard throw, not prompt)
+- Two-agent capability denials (tool-registry hard throw)
 - Orchestrator sequencing (deterministic execution; one optional OpenAI claim-selection)
 - Partner boundary proof re-verification (rejects tampered presentations)
 - Onchain reputation write/read
+- SwapRouter02 fill when `UNISWAP_LIVE=true` and the quote does not throw
 
 ## Definitive Flash
 

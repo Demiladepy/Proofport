@@ -1,10 +1,14 @@
 /**
  * Uniswap V3 swap on Base Sepolia via QuoterV2 + SwapRouter02.
  * Falls back by throwing — caller uses MockSwap.
+ *
+ * SwapRouter02 ExactInputSingleParams has no deadline field.
+ * Deadline is enforced with multicall(uint256 deadline, bytes[]).
  */
 import {
   createPublicClient,
   createWalletClient,
+  encodeFunctionData,
   http,
   parseAbi,
   parseUnits,
@@ -16,6 +20,9 @@ import { baseSepolia } from "viem/chains";
 import type { SwapProvider, SwapRequest, SwapResult } from "./types";
 
 const RPC = process.env.BASE_SEPOLIA_RPC_URL ?? "https://sepolia.base.org";
+const FEE_TIERS = [3000, 500, 10000] as const;
+const SLIPPAGE_BPS = 500n; // 5%
+const DEADLINE_SECS = 1200;
 
 /** Uniswap V3 on Base Sepolia (official deployments) */
 export const BASE_SEPOLIA_UNISWAP = {
@@ -33,10 +40,12 @@ const quoterAbi = parseAbi([
 
 const routerAbi = parseAbi([
   "function exactInputSingle((address tokenIn, address tokenOut, uint24 fee, address recipient, uint256 amountIn, uint256 amountOutMinimum, uint160 sqrtPriceLimitX96) params) payable returns (uint256 amountOut)",
+  "function multicall(uint256 deadline, bytes[] data) payable returns (bytes[])",
 ]);
 
 const erc20Abi = parseAbi([
   "function approve(address spender, uint256 amount) returns (bool)",
+  "function allowance(address owner, address spender) view returns (uint256)",
   "function balanceOf(address) view returns (uint256)",
 ]);
 
@@ -45,17 +54,23 @@ function resolveToken(symbol: SwapRequest["fromToken"]): Address {
   return BASE_SEPOLIA_UNISWAP.weth;
 }
 
-export async function quoteUniswapV3(req: SwapRequest): Promise<{ amountOut: string }> {
-  const publicClient = createPublicClient({
-    chain: baseSepolia,
-    transport: http(RPC),
-  });
-  const tokenIn = resolveToken(req.fromToken);
-  const tokenOut = resolveToken(req.toToken);
-  const amountIn =
-    req.fromToken === "USDC"
-      ? parseUnits(req.amountIn, 6)
-      : parseUnits(req.amountIn, 18);
+function amountInWei(req: SwapRequest): bigint {
+  return req.fromToken === "USDC"
+    ? parseUnits(req.amountIn, 6)
+    : parseUnits(req.amountIn, 18);
+}
+
+function minOut(quoted: bigint): bigint {
+  return (quoted * (10_000n - SLIPPAGE_BPS)) / 10_000n;
+}
+
+async function quoteFee(
+  publicClient: ReturnType<typeof createPublicClient>,
+  tokenIn: Address,
+  tokenOut: Address,
+  amountIn: bigint,
+  fee: number,
+): Promise<bigint> {
   const { result } = await publicClient.simulateContract({
     address: BASE_SEPOLIA_UNISWAP.quoterV2,
     abi: quoterAbi,
@@ -65,12 +80,42 @@ export async function quoteUniswapV3(req: SwapRequest): Promise<{ amountOut: str
         tokenIn,
         tokenOut,
         amountIn,
-        fee: 3000,
+        fee,
         sqrtPriceLimitX96: BigInt(0),
       },
     ],
   });
-  return { amountOut: (result[0] as bigint).toString() };
+  return result[0] as bigint;
+}
+
+export async function quoteUniswapV3(
+  req: SwapRequest,
+): Promise<{ amountOut: string; fee: number }> {
+  const publicClient = createPublicClient({
+    chain: baseSepolia,
+    transport: http(RPC),
+  });
+  const tokenIn = resolveToken(req.fromToken);
+  const tokenOut = resolveToken(req.toToken);
+  const amountIn = amountInWei(req);
+  const errors: string[] = [];
+  for (const fee of FEE_TIERS) {
+    try {
+      const amountOut = await quoteFee(
+        publicClient,
+        tokenIn,
+        tokenOut,
+        amountIn,
+        fee,
+      );
+      return { amountOut: amountOut.toString(), fee };
+    } catch (err) {
+      errors.push(
+        `fee ${fee}: ${err instanceof Error ? err.message : String(err)}`,
+      );
+    }
+  }
+  throw new Error(`No Uniswap V3 quote (${errors.join("; ")})`);
 }
 
 export class UniswapSwapProvider implements SwapProvider {
@@ -99,55 +144,76 @@ export class UniswapSwapProvider implements SwapProvider {
 
     const tokenIn = resolveToken(req.fromToken);
     const tokenOut = resolveToken(req.toToken);
-    const fee = 3000;
-    const amountIn =
-      req.fromToken === "USDC"
-        ? parseUnits(req.amountIn, 6)
-        : parseUnits(req.amountIn, 18);
+    const amountIn = amountInWei(req);
+    const nativeIn = req.fromToken === "ETH";
+    const value = nativeIn ? amountIn : 0n;
 
-    // Probe pool / quote — throws if no liquidity
-    const { result } = await publicClient.simulateContract({
-      address: BASE_SEPOLIA_UNISWAP.quoterV2,
-      abi: quoterAbi,
-      functionName: "quoteExactInputSingle",
-      args: [
-        {
-          tokenIn,
-          tokenOut,
-          amountIn,
-          fee,
-          sqrtPriceLimitX96: BigInt(0),
-        },
-      ],
-    });
-    const amountOut = result[0] as bigint;
+    const quoted = await quoteUniswapV3(req);
+    const amountOut = BigInt(quoted.amountOut);
+    const amountOutMinimum = minOut(amountOut);
+    const fee = quoted.fee;
+    const deadline = BigInt(Math.floor(Date.now() / 1000) + DEADLINE_SECS);
 
-    if (tokenIn !== BASE_SEPOLIA_UNISWAP.weth || req.fromToken !== "ETH") {
-      await walletClient.writeContract({
+    if (!nativeIn) {
+      const allowance = await publicClient.readContract({
         address: tokenIn,
         abi: erc20Abi,
-        functionName: "approve",
-        args: [BASE_SEPOLIA_UNISWAP.swapRouter02, amountIn],
+        functionName: "allowance",
+        args: [account.address, BASE_SEPOLIA_UNISWAP.swapRouter02],
       });
+      if (allowance < amountIn) {
+        const approveHash = await walletClient.writeContract({
+          address: tokenIn,
+          abi: erc20Abi,
+          functionName: "approve",
+          args: [BASE_SEPOLIA_UNISWAP.swapRouter02, amountIn],
+        });
+        const approveReceipt = await publicClient.waitForTransactionReceipt({
+          hash: approveHash,
+        });
+        if (approveReceipt.status !== "success") {
+          throw new Error(`Uniswap token approve reverted: ${approveHash}`);
+        }
+      }
     }
 
+    const params = {
+      tokenIn,
+      tokenOut,
+      fee,
+      recipient: account.address,
+      amountIn,
+      amountOutMinimum,
+      sqrtPriceLimitX96: BigInt(0),
+    };
+
+    const inner = encodeFunctionData({
+      abi: routerAbi,
+      functionName: "exactInputSingle",
+      args: [params],
+    });
+
+    try {
+      await publicClient.simulateContract({
+        address: BASE_SEPOLIA_UNISWAP.swapRouter02,
+        abi: routerAbi,
+        functionName: "multicall",
+        args: [deadline, [inner]],
+        account: account.address,
+        value,
+      });
+    } catch (err) {
+      const reason = err instanceof Error ? err.message : String(err);
+      throw new Error(`SwapRouter02 simulate reverted: ${reason}`);
+    }
+
+    // Live SwapRouter02 fill: multicall(deadline) → exactInputSingle
     const txHash = await walletClient.writeContract({
       address: BASE_SEPOLIA_UNISWAP.swapRouter02,
       abi: routerAbi,
-      functionName: "exactInputSingle",
-      args: [
-        {
-          tokenIn,
-          tokenOut,
-          fee,
-          recipient: account.address,
-          amountIn,
-          amountOutMinimum: (amountOut * BigInt(95)) / BigInt(100),
-          sqrtPriceLimitX96: BigInt(0),
-        },
-      ],
-      value:
-        req.fromToken === "ETH" || req.fromToken === "WETH" ? amountIn : BigInt(0),
+      functionName: "multicall",
+      args: [deadline, [inner]],
+      value,
     });
 
     const receipt = await publicClient.waitForTransactionReceipt({ hash: txHash });

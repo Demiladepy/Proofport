@@ -8,31 +8,43 @@ Built for Runtime (Bankr × Propaganda). **Not** a consumer cash-out app. We are
 
 ## What is LIVE vs SIMULATED
 
+Statuses match [`MOCKS.md`](MOCKS.md) exactly. Every LIVE row there has a tx hash or file+line.
+
 | Surface | Status | Why |
 | --- | --- | --- |
-| SD-JWT selective disclosure | **LIVE** | Cryptographic withholding via `@sd-jwt/sd-jwt-vc` |
-| Capability denials | **LIVE** | Hard throw in the tool registry, not a prompt |
-| Reputation attestation | **LIVE** | Base Sepolia contract, hashes only, no PII |
-| Revocable authority | **LIVE** (app-level) | Grant / Revoke cookie + file gate |
-| x402 402 → retry | **LIVE header / SIMULATED result** | Protocol loop is real; compliance body is mock |
+| SD-JWT selective disclosure | **LIVE** | Cryptographic withholding via `@sd-jwt/sd-jwt-vc` ([`src/credentials/index.ts`](src/credentials/index.ts) `present` L154–184) |
+| Capability denials | **LIVE** | Hard throw in the tool registry ([`src/agents/capability.ts`](src/agents/capability.ts) `denyCapability` L17) |
+| Reputation attestation | **LIVE** | Base Sepolia `0xac188e1e…f16`, hashes only. Example write [`0xd546a412…cdef8`](https://sepolia.basescan.org/tx/0xd546a412a54646441b33990c3bd91854e6fe65d04ee97ca7eb1a73979c7cdef8) |
+| Lender chain read | **LIVE** | [`/lender`](/lender) · `GET /api/reputation` |
+| Revocable authority | **LIVE** (app-level Grant/Revoke) | Cookie + file gate. Not Dynamic MPC. |
+| Execution-agent signing | **LIVE** local viem | Sender `0x0afC983C…` on the Uniswap and attestation txs. Not Dynamic MPC. |
+| Dynamic server-wallet mint | **BLOCKED upstream** | Grant/Revoke is LIVE; Dynamic MPC minting timed out; execution signs with local key `0x0afC983C…` |
+| x402 402 → retry | **LIVE header / SIMULATED result** | Protocol loop is real; body is `mock_compliance`. No ExactEvmScheme settlement tx. |
 | ID issuer (NIN/BVN stand-in) | **SIMULATED** | Legal / no government issuer |
 | Licensed partner / bank | **SIMULATED** | Legal: we do not move fiat |
-| Uniswap swap | **LIVE** on Base Sepolia (tiny ETH→USDC) | Testnet. Trading API first when `UNISWAP_API_KEY` is set; SwapRouter02 if the API cannot route. Mock only if both fail, and then labeled. |
-| Dynamic Neon MPC | **SIMULATED / incomplete on Windows** | SDK is darwin/linux; local viem wallets |
+| OpenAI claim pick | **MIXED** | Allowlisted model pick when keyed; otherwise labeled fallback |
+| Uniswap Trading API | **UNUSED** | Auto path is SwapRouter02. Trading API 404’d on Base Sepolia ETH/USDC. |
+| Uniswap swap | **LIVE** on Base Sepolia (tiny ETH→USDC) | SwapRouter02 fill [`0xd4ddc55d…1346d3`](https://sepolia.basescan.org/tx/0xd4ddc55d5a6db1efe065fb6151712da244eb3a3aaa5908558b6a50e8721346d3). Calldata [`src/swap/uniswap.ts`](src/swap/uniswap.ts) L190–194, broadcast L211–217. Mock only if that path throws. |
 
-Full ledger: [`MOCKS.md`](MOCKS.md).
+Full ledger with every citation: [`MOCKS.md`](MOCKS.md). Form paste + shot-list: [`SUBMISSION.md`](SUBMISSION.md).
 
 ## Where to look
 
 | What | File |
 | --- | --- |
-| SD-JWT `present()` selective disclosure | [`src/credentials/index.ts`](src/credentials/index.ts) ~L154 |
-| Capability-denial throw | [`src/agents/capability.ts`](src/agents/capability.ts) `denyCapability` ~L17 |
-| Reputation write / read | [`src/reputation/index.ts`](src/reputation/index.ts) `writeAttestation` ~L103, `readAttestation` / `getAttestation` ~L169 |
-| Contract | [`contracts/ReputationAttestation.sol`](contracts/ReputationAttestation.sol) |
+| SD-JWT `present()` / `verify()` | [`src/credentials/index.ts`](src/credentials/index.ts) L154–184 / L194–216 |
+| Capability-denial throw | [`src/agents/capability.ts`](src/agents/capability.ts) `denyCapability` L17–22; orchestrator L139–152 |
+| Reputation write / read | [`src/reputation/index.ts`](src/reputation/index.ts) `writeAttestation` L103, `attest` L137–142, `readAttestation` L169 |
+| Contract | [`contracts/ReputationAttestation.sol`](contracts/ReputationAttestation.sol) at `0xac188e1e9d624b346006dfe233290751165f2f16` |
+| Grant / Revoke | [`src/delegation/index.ts`](src/delegation/index.ts) L74 / L87; [`src/app/api/delegation/route.ts`](src/app/api/delegation/route.ts) POST L31 |
+| Dynamic status (always `local_viem`) | [`src/wallet/dynamic-status.ts`](src/wallet/dynamic-status.ts) L57–108 |
 | Orchestrator | [`src/orchestrator/index.ts`](src/orchestrator/index.ts) |
-| Dual wallets | [`src/wallet/dual.ts`](src/wallet/dual.ts) |
-| Lender (chain-only) | [`src/app/lender/page.tsx`](src/app/lender/page.tsx) · [`src/app/api/reputation/route.ts`](src/app/api/reputation/route.ts) |
+| Uniswap SwapRouter02 fill | [`src/swap/uniswap.ts`](src/swap/uniswap.ts) QuoterV2 L74–88, `exactInputSingle` L190–194, `multicall(deadline)` L211–217 |
+| Dual wallets / execution key | [`src/wallet/dual.ts`](src/wallet/dual.ts) `getExecutionPrivateKey` L32 |
+| OpenAI claim pick (mixed) | [`src/agents/proof-agent/select-claims.ts`](src/agents/proof-agent/select-claims.ts) L35 |
+| Lender (chain-only) | [`src/app/lender/page.tsx`](src/app/lender/page.tsx) · [`src/app/api/reputation/route.ts`](src/app/api/reputation/route.ts) GET L23 |
+| x402 header loop / mock body | [`src/payments/x402.ts`](src/payments/x402.ts) L86–135 · [`src/app/api/compliance-check/route.ts`](src/app/api/compliance-check/route.ts) L14–21 |
+| Partner (simulated) | [`src/partner/index.ts`](src/partner/index.ts) `requestPartnerHandoff` L31 |
 
 ## Demo
 

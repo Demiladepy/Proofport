@@ -143,6 +143,10 @@ const HONESTY_LEGEND = [
   { honesty: "live", text: "Swap: Uniswap, Base Sepolia" },
   { honesty: "sim", text: "Bank payout: not sent from this app" },
   { honesty: "live", text: "Credit hash: live onchain" },
+  {
+    honesty: "mixed",
+    text: "Delegated authority (Grant/Revoke) is LIVE; Dynamic MPC minting is BLOCKED upstream (API timeout); execution signs with a bridged local key.",
+  },
 ] as const;
 
 const DENIALS_IDLE = [
@@ -695,11 +699,7 @@ export default function Home() {
           </div>
           <div>
             <span>Authority</span>
-            <strong>
-              {rail.dynamic?.signer === "wsl_mpc"
-                ? "Dynamic MPC (WSL)"
-                : "Dynamic grant; local signer"}
-            </strong>
+            <strong>Grant/Revoke live; local key</strong>
           </div>
           <div>
             <span>Bank</span>
@@ -1178,9 +1178,9 @@ export default function Home() {
                   </li>
                   <li>
                     <span>
-                      {rail?.dynamic?.signer === "wsl_mpc"
-                        ? "Dynamic MPC via WSL"
-                        : "Dynamic grant on Windows"}
+                      {rail?.dynamic?.note
+                        ? "Grant/Revoke live; MPC mint blocked"
+                        : "Grant/Revoke live; local key"}
                     </span>
                   </li>
                   <li>
