@@ -18,21 +18,27 @@ Proofport is a constrained-agent credit-and-reputation rail, not a consumer cash
 
 A proof-agent issues an SD-JWT VC and discloses only allowlisted claims (`verified`, plus `country` or `over_18`). Name and ID stay withheld in the presentation. An execution-agent never reads those fields. Each agent is blocked from the other’s tools by a hard throw in the tool registry (`denyCapability`).
 
-When the proof verifies, the execution-agent (local viem key `0x0afC983C15444DFDaaD76aBF22f1D1053035AE67`) does three things that are actually wired:
+When the proof verifies, the execution-agent does four things that are actually wired:
 
-1. A tiny ETH→USDC fill on Uniswap V3 SwapRouter02, Base Sepolia. Confirmed tx [`0xd4ddc55d5a6db1efe065fb6151712da244eb3a3aaa5908558b6a50e8721346d3`](https://sepolia.basescan.org/tx/0xd4ddc55d5a6db1efe065fb6151712da244eb3a3aaa5908558b6a50e8721346d3) (pool sent `0.395801` USDC).
+1. A tiny ETH→USDC fill on Uniswap V3 SwapRouter02, Base Sepolia (signed by the local viem execution key `0x0afC983C15444DFDaaD76aBF22f1D1053035AE67`). Confirmed tx [`0xd4ddc55d5a6db1efe065fb6151712da244eb3a3aaa5908558b6a50e8721346d3`](https://sepolia.basescan.org/tx/0xd4ddc55d5a6db1efe065fb6151712da244eb3a3aaa5908558b6a50e8721346d3) (pool sent `0.395801` USDC).
 2. A PII-free reputation attestation (`subject` / `kind` / `evidenceHash`) on `0xac188e1e9d624b346006dfe233290751165f2f16`. Example writes: [`0xd546a412a54646441b33990c3bd91854e6fe65d04ee97ca7eb1a73979c7cdef8`](https://sepolia.basescan.org/tx/0xd546a412a54646441b33990c3bd91854e6fe65d04ee97ca7eb1a73979c7cdef8), [`0xbc34142f695e60d23499b06f7297853ca25ff70d57640046d696cef6adbbaccf`](https://sepolia.basescan.org/tx/0xbc34142f695e60d23499b06f7297853ca25ff70d57640046d696cef6adbbaccf). A lender page at `/lender` reads that hash only.
-3. App-level Grant / Revoke (cookie + file). Revoke blocks the run.
+3. A Dynamic MPC signature. The Dynamic server wallet `0xA83850aB6e3e15e038eE5f79318c40985aC7EA77` (2-of-2 threshold) signs and broadcasts its own transaction — `from` on-chain is the MPC wallet, not our key. Agent-run tx [`0x85fd02dd919213773d969ba998aac04533750aa31fc987c0e31e6cd633465d04`](https://sepolia.basescan.org/tx/0x85fd02dd919213773d969ba998aac04533750aa31fc987c0e31e6cd633465d04) (nonce 2, `status=success`).
+4. Grant / Revoke. The gate is app-level (cookie + file), but when the MPC signer is up the grant is recorded against that Dynamic wallet, and Revoke blocks the run before anything signs.
 
 **What is not live (do not imply otherwise):**
 
 - Identity issuer: local mock keypair. No government NIN/BVN.
 - Licensed partner / bank: `MockLicensedPartner` returns `settlement_initiated`. No fiat moves.
 - x402: 402 → payment header → 200 is demonstrable; the body is `mock_compliance`. We have no ExactEvmScheme settlement tx.
-- Dynamic MPC: blocked upstream (`signTransaction` timed out). Grant/Revoke is app-level. Execution signs with the local key above. Tx [`0x2ebe2f1a68f1366d3809d720c1100f0feac90bf1d60eff4e64b5a5384fa09242`](https://sepolia.basescan.org/tx/0x2ebe2f1a68f1366d3809d720c1100f0feac90bf1d60eff4e64b5a5384fa09242) is that local key funding a Dynamic address — not an MPC signature.
 - Uniswap Trading API: unused. Live path is SwapRouter02.
 
-**Tracks:** Uniswap — yes, with the SwapRouter02 fill above. Dynamic — no MPC signing on-chain; say so.
+**Live, but with a constraint worth stating:**
+
+- Dynamic MPC: signs on-chain, but it needs a Linux runtime. `@dynamic-labs-wallet/node` ships MPC binaries for linux/macos only, so on Windows the signing runs out-of-process in WSL (`npm run mpc:serve`). With that signer down the app reports `signer: "local_viem"` and the UI says so. Delegated access (webhook `walletApiKey`/`keyShare`) is **not** used — signing uses stored wallet metadata + key shares.
+- Grant / Revoke is an app-level gate (cookie + file), not an on-chain policy contract. It binds to the MPC wallet; it is not enforced by Dynamic.
+- Tx [`0x2ebe2f1a…a09242`](https://sepolia.basescan.org/tx/0x2ebe2f1a68f1366d3809d720c1100f0feac90bf1d60eff4e64b5a5384fa09242) is the local key funding the Dynamic address — that one is gas, not a signature.
+
+**Tracks:** Uniswap — yes, with the SwapRouter02 fill above. Dynamic — yes: MPC `from` hash `0x85fd02dd…465d04`, plus nonce 0 [`0xd96b57f6…c8c9e1`](https://sepolia.basescan.org/tx/0xd96b57f60add3852d684676343a0528947f380b9fdea65d85661f1b473c8c9e1) and nonce 1 [`0x6f5f7b62…d3ddb2`](https://sepolia.basescan.org/tx/0x6f5f7b622ad07c9dd1efaade2120325859f0d95217484970ed30976888d3ddb2) from the same wallet.
 
 **Repo / video:** paste your public GitHub URL and the 90s mp4 after you record them. Shot-list: [`demos/proofport-one-take.md`](demos/proofport-one-take.md).
 
@@ -79,4 +85,8 @@ npm run smoke:partner
 npm run smoke:swap
 npm run smoke:delegation
 npm run smoke:wallet
+
+# Dynamic MPC signer (Linux; on Windows these shell into WSL)
+npm run mpc:serve   # sidecar on 127.0.0.1:18787 — the app calls this
+npm run mpc:sign    # one-shot signature, writes .data/dynamic-mpc-proof.json
 ```

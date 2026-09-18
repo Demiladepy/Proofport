@@ -10,7 +10,9 @@ Never say the word that means “LLM instruction.” Capability denials are a **
 
 Cream hero. Point at the honesty chips **before** you run anything. Say, out loud:
 
-> Identity issuer is demo — no government ID. Bank payout is not sent from this app. Dynamic MPC minting is blocked; we sign with a local key. The compliance body is mock. What is live: private proof, agent bounds, Uniswap on Base Sepolia, onchain hash, Grant and Revoke.
+> Identity issuer is demo — no government ID. Bank payout is not sent from this app. The compliance body is mock. What is live: private proof, agent bounds, Uniswap on Base Sepolia, an onchain hash with no PII, Grant and Revoke, and a Dynamic MPC wallet that signs its own transaction.
+
+**Before recording, start the MPC signer** (`npm run mpc:serve`) and reload, or the authority chip will correctly read `local_viem` and the Dynamic claim will not be on screen.
 
 Do not click yet.
 
@@ -32,13 +34,19 @@ On **Attest**: reputation tx + subject. Open the explorer link if it is on scree
 
 If Swap shows Uniswap on Base Sepolia, that is the live AMM fill. Do not call a labeled fallback a Uniswap fill.
 
-### 70–90s — Grant / Revoke (LIVE, app-level)
+### 70–90s — Dynamic MPC + Grant / Revoke (LIVE)
 
-Back to the demo. Click **Revoke**. Try run — blocked. Click **Grant**. Close on the footer line:
+On the trace, point at **dynamic_mpc_sign**. Open its explorer link: `from` is the
+Dynamic server wallet `0xA83850aB…`, not our key. Say: the delegated wallet signed
+that itself.
+
+Back to the demo. Click **Revoke**. Try run — blocked before anything signs. Click
+**Grant**. Close on the footer line:
 
 > Two agents split by capability. Private proof, public hash, revocable authority. The bank stays off our books on purpose.
 
-Stop. Do not claim Dynamic MPC. Do not claim a bank transfer.
+Stop. Do not claim a bank transfer. Do not claim the Revoke gate is enforced
+on-chain — it is an app-level gate over an MPC wallet.
 
 ## Spoken line (one take)
 

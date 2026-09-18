@@ -62,10 +62,16 @@ type RailStatus = {
     wsl: boolean;
     webhookCreds: boolean;
     webhookSecret?: boolean;
-    signer: "wsl_mpc" | "local_viem";
+    signer: "dynamic_mpc" | "local_viem";
+    mpcProven?: boolean;
     note: string;
     mpcAddress?: string;
     mpcEth?: string;
+    mpcProof?: {
+      txHash: string;
+      explorerUrl: string;
+      address: string;
+    };
   };
 };
 
@@ -143,11 +149,41 @@ const HONESTY_LEGEND = [
   { honesty: "live", text: "Swap: Uniswap, Base Sepolia" },
   { honesty: "sim", text: "Bank payout: not sent from this app" },
   { honesty: "live", text: "Credit hash: live onchain" },
-  {
-    honesty: "mixed",
-    text: "Delegated authority (Grant/Revoke) is LIVE; Dynamic MPC minting is BLOCKED upstream (API timeout); execution signs with a bridged local key.",
-  },
 ] as const;
+
+type HonestyRow = { honesty: "live" | "sim" | "mixed"; text: string };
+
+/**
+ * The authority row reports what the rail can do *right now*, not what it did
+ * once. Claiming MPC while the Linux signer is down would be a lie.
+ */
+function authorityHonestyRow(
+  dynamic: RailStatus["dynamic"],
+): HonestyRow {
+  if (dynamic?.signer === "dynamic_mpc") {
+    return {
+      honesty: "live",
+      text: `Delegated authority LIVE: Grant/Revoke governs Dynamic MPC wallet ${shortAddress(
+        dynamic.mpcAddress,
+      )}, which signs on-chain.`,
+    };
+  }
+  if (dynamic?.mpcProven) {
+    return {
+      honesty: "mixed",
+      text: "Grant/Revoke is LIVE. Dynamic MPC signing is proven on-chain but its Linux signer is offline right now, so this run signs with the local key.",
+    };
+  }
+  return {
+    honesty: "mixed",
+    text: "Delegated authority (Grant/Revoke) is LIVE at app level; execution signs with the local key.",
+  };
+}
+
+function shortAddress(address?: string): string {
+  if (!address) return "";
+  return `${address.slice(0, 6)}…${address.slice(-4)}`;
+}
 
 const DENIALS_IDLE = [
   {
@@ -481,7 +517,10 @@ export default function Home() {
     swapOut.provider !== "uniswap"
       ? "Uniswap quote failed, used internal fallback."
       : null;
-  const honestyLegend = HONESTY_LEGEND;
+  const honestyLegend: readonly HonestyRow[] = [
+    ...HONESTY_LEGEND,
+    authorityHonestyRow(rail?.dynamic),
+  ];
   const authorityOn = Boolean(delegation?.granted);
   const authorityLocked = delegation !== null && !delegation.granted;
 
@@ -1178,8 +1217,8 @@ export default function Home() {
                   </li>
                   <li>
                     <span>
-                      {rail?.dynamic?.note
-                        ? "Grant/Revoke live; MPC mint blocked"
+                      {rail?.dynamic?.signer === "dynamic_mpc"
+                        ? "Grant/Revoke live; Dynamic MPC signing"
                         : "Grant/Revoke live; local key"}
                     </span>
                   </li>

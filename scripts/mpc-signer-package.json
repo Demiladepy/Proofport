@@ -1,0 +1,12 @@
+{
+  "name": "proofport-mpc",
+  "private": true,
+  "type": "module",
+  "description": "Linux-native install of the Dynamic MPC SDK. Bootstrapped by scripts/start-dynamic-wsl.sh into ~/proofport-mpc.",
+  "dependencies": {
+    "@dynamic-labs-wallet/core": "1.1.10",
+    "@dynamic-labs-wallet/node-evm": "1.1.10",
+    "dotenv": "^17.4.2",
+    "viem": "^2.56.5"
+  }
+}

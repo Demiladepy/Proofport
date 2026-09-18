@@ -16,9 +16,9 @@ Statuses match [`MOCKS.md`](MOCKS.md) exactly. Every LIVE row there has a tx has
 | Capability denials | **LIVE** | Hard throw in the tool registry ([`src/agents/capability.ts`](src/agents/capability.ts) `denyCapability` L17) |
 | Reputation attestation | **LIVE** | Base Sepolia `0xac188e1e…f16`, hashes only. Example write [`0xd546a412…cdef8`](https://sepolia.basescan.org/tx/0xd546a412a54646441b33990c3bd91854e6fe65d04ee97ca7eb1a73979c7cdef8) |
 | Lender chain read | **LIVE** | [`/lender`](/lender) · `GET /api/reputation` |
-| Revocable authority | **LIVE** (app-level Grant/Revoke) | Cookie + file gate. Not Dynamic MPC. |
-| Execution-agent signing | **LIVE** local viem | Sender `0x0afC983C…` on the Uniswap and attestation txs. Not Dynamic MPC. |
-| Dynamic server-wallet mint | **BLOCKED upstream** | Grant/Revoke is LIVE; Dynamic MPC minting timed out; execution signs with local key `0x0afC983C…` |
+| Revocable authority | **LIVE** (app-level Grant/Revoke) | Cookie + file gate, not an on-chain policy contract. Binds to the Dynamic MPC wallet when the signer is up; Revoke blocks the run before anything signs. |
+| Execution-agent signing | **LIVE** | Swap + attestation signed by local viem key `0x0afC983C…`. The authority-proof step in the same run is signed by the Dynamic MPC wallet. |
+| Dynamic server-wallet MPC sign | **LIVE** (needs a Linux runtime) | Server wallet `0xA83850aB…` signs on-chain. Agent-run tx [`0x85fd02dd…465d04`](https://sepolia.basescan.org/tx/0x85fd02dd919213773d969ba998aac04533750aa31fc987c0e31e6cd633465d04) — `from` is the MPC wallet. The SDK has no win32 MPC binary, so signing runs in WSL (`npm run mpc:serve`); with it down the app reports `local_viem` and says so. |
 | x402 402 → retry | **LIVE header / SIMULATED result** | Protocol loop is real; body is `mock_compliance`. No ExactEvmScheme settlement tx. |
 | ID issuer (NIN/BVN stand-in) | **SIMULATED** | Legal / no government issuer |
 | Licensed partner / bank | **SIMULATED** | Legal: we do not move fiat |
@@ -37,7 +37,9 @@ Full ledger with every citation: [`MOCKS.md`](MOCKS.md). Form paste + shot-list:
 | Reputation write / read | [`src/reputation/index.ts`](src/reputation/index.ts) `writeAttestation` L103, `attest` L137–142, `readAttestation` L169 |
 | Contract | [`contracts/ReputationAttestation.sol`](contracts/ReputationAttestation.sol) at `0xac188e1e9d624b346006dfe233290751165f2f16` |
 | Grant / Revoke | [`src/delegation/index.ts`](src/delegation/index.ts) L74 / L87; [`src/app/api/delegation/route.ts`](src/app/api/delegation/route.ts) POST L31 |
-| Dynamic status (always `local_viem`) | [`src/wallet/dynamic-status.ts`](src/wallet/dynamic-status.ts) L57–108 |
+| Dynamic MPC signer (Linux sidecar) | [`scripts/dynamic-wsl-signer.mjs`](scripts/dynamic-wsl-signer.mjs) `signAndSend` L105–152 · one-shot [`scripts/dynamic-mpc-sign.mjs`](scripts/dynamic-mpc-sign.mjs) |
+| Dynamic MPC app client | [`src/wallet/dynamic-mpc.ts`](src/wallet/dynamic-mpc.ts) `mpcSignAndSend` L77 · `probeMpcSigner` L52 |
+| Dynamic rail status (real signer, not hardcoded) | [`src/wallet/dynamic-status.ts`](src/wallet/dynamic-status.ts) `getDynamicRailStatus` L43 |
 | Orchestrator | [`src/orchestrator/index.ts`](src/orchestrator/index.ts) |
 | Uniswap SwapRouter02 fill | [`src/swap/uniswap.ts`](src/swap/uniswap.ts) QuoterV2 L74–88, `exactInputSingle` L190–194, `multicall(deadline)` L211–217 |
 | Dual wallets / execution key | [`src/wallet/dual.ts`](src/wallet/dual.ts) `getExecutionPrivateKey` L32 |
@@ -69,6 +71,31 @@ npm run dev
 ```
 
 Fund the execution wallet on Base Sepolia (ETH + Circle USDC). Set `EXECUTION_AGENT_PRIVATE_KEY` or `DEMO_AGENT_PRIVATE_KEY`. Never commit `.env`.
+
+### Dynamic MPC signer (Linux only)
+
+`@dynamic-labs-wallet/node` ships MPC executors for linux/macos only — there is
+no win32 binary, so Next.js on Windows cannot sign in-process. The signer runs
+out-of-process and the app talks to it over localhost:
+
+```bash
+npm run mpc:serve
+```
+
+On Windows that shells into WSL; on Linux run `bash scripts/start-dynamic-wsl.sh`.
+It bootstraps a Linux-native SDK install in `~/proofport-mpc` on first run (npm
+resolution over the `/mnt/c` 9p mount is unusably slow), then listens on
+`127.0.0.1:18787` with `GET /health` and `POST /sign`.
+
+For a single signature without the server:
+
+```bash
+npm run mpc:sign
+```
+
+Both write the receipt to `.data/dynamic-mpc-proof.json`. With the signer down
+the app reports `signer: "local_viem"` and the UI says so — it never claims MPC
+it cannot currently perform.
 
 ## Scripts
 

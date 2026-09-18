@@ -40,12 +40,29 @@ export async function POST(req: NextRequest) {
     return withCookie(revokeDelegation());
   }
 
+  // When the Dynamic MPC signer is actually up, the authority being granted
+  // governs that server wallet — say so. Otherwise stay honest: app-level.
+  let mode = body.mode;
+  let accountAddress = body.accountAddress;
+  let note = "Granted via /api/delegation";
+  if (!mode) {
+    const { probeMpcSigner } = await import("@/wallet/dynamic-mpc");
+    const live = await probeMpcSigner();
+    if (live?.ready && live.address) {
+      mode = "dynamic";
+      accountAddress ??= live.address;
+      note = `Granted via /api/delegation — authority over Dynamic MPC wallet ${live.address}`;
+    } else {
+      mode = "app_level_fallback";
+    }
+  }
+
   return withCookie(
     grantDelegation({
-      mode: body.mode ?? "app_level_fallback",
+      mode,
       walletId: body.walletId,
-      accountAddress: body.accountAddress,
-      note: "Granted via /api/delegation",
+      accountAddress,
+      note,
     }),
   );
 }

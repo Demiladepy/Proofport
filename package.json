@@ -22,7 +22,9 @@
     "smoke:swap": "tsx tests/smoke/swap.ts",
     "smoke:partner": "tsx tests/smoke/partner.ts",
     "smoke:delegation": "tsx tests/smoke/delegation.ts",
-    "smoke:agent": "tsx tests/smoke/agent.ts"
+    "smoke:agent": "tsx tests/smoke/agent.ts",
+    "mpc:sign": "wsl -e bash scripts/run-mpc-sign.sh",
+    "mpc:serve": "wsl -e bash scripts/start-dynamic-wsl.sh"
   },
   "dependencies": {
     "@ai-sdk/openai": "^4.0.67",

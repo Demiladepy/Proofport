@@ -2,18 +2,21 @@ import { existsSync } from "node:fs";
 import { join } from "node:path";
 import { execFileSync } from "node:child_process";
 import { hasDynamicEnv } from "./dynamic";
-
-const SIGNER_URL = process.env.DYNAMIC_WSL_SIGNER_URL ?? "http://127.0.0.1:18787";
+import { getMpcProof, probeMpcSigner, type MpcProof } from "./dynamic-mpc";
 
 export type DynamicRailStatus = {
   envReady: boolean;
   wsl: boolean;
   webhookCreds: boolean;
   webhookSecret: boolean;
-  signer: "wsl_mpc" | "local_viem";
+  /** What will sign the next execution tx, right now. */
+  signer: "dynamic_mpc" | "local_viem";
+  /** Has this wallet ever produced an on-chain MPC signature? */
+  mpcProven: boolean;
   note: string;
   mpcAddress?: string;
   mpcEth?: string;
+  mpcProof?: MpcProof;
 };
 
 let wslCached: boolean | null = null;
@@ -36,23 +39,7 @@ export function hasWsl(): boolean {
   return wslCached;
 }
 
-export async function probeWslSigner(): Promise<{
-  ok: boolean;
-  ready?: boolean;
-  address?: string;
-  eth?: string;
-  note?: string;
-} | null> {
-  try {
-    const res = await fetch(`${SIGNER_URL}/health`, {
-      signal: AbortSignal.timeout(600),
-    });
-    if (!res.ok) return null;
-    return (await res.json()) as { ok: boolean; address?: string; eth?: string };
-  } catch {
-    return null;
-  }
-}
+export { probeMpcSigner as probeWslSigner };
 
 export async function getDynamicRailStatus(): Promise<DynamicRailStatus> {
   const envReady = hasDynamicEnv();
@@ -64,48 +51,55 @@ export async function getDynamicRailStatus(): Promise<DynamicRailStatus> {
   );
   const webhookCreds = existsSync(/* turbopackIgnore: true */ webhookFile);
   const webhookSecret = Boolean(process.env.DELEGATION_WEBHOOK_SECRET?.trim());
-  const live = await probeWslSigner();
-  const blockedNote =
-    "Delegated authority (Grant/Revoke) is LIVE; Dynamic MPC minting is BLOCKED upstream (API timeout); execution signs with a bridged local key.";
+  const proof = getMpcProof();
+  const live = await probeMpcSigner();
 
-  if (live?.ok) {
+  const base = {
+    envReady,
+    wsl,
+    webhookCreds,
+    webhookSecret,
+    mpcProven: Boolean(proof),
+    mpcProof: proof ?? undefined,
+  };
+
+  if (live?.ready) {
     return {
-      envReady,
-      wsl,
-      webhookCreds,
-      webhookSecret,
+      ...base,
+      signer: "dynamic_mpc",
+      mpcAddress: live.address,
+      mpcEth: live.eth,
+      note: `Dynamic MPC signer is live. Execution txs are signed by the Dynamic server wallet ${live.address}.`,
+    };
+  }
+
+  if (proof) {
+    return {
+      ...base,
       signer: "local_viem",
-      note: blockedNote,
+      mpcAddress: proof.address,
+      note: `Dynamic MPC signing is proven on-chain (${proof.txHash}) but the Linux signer is not running, so this process would sign with the local key. Start it with: npm run mpc:serve`,
     };
   }
 
   if (envReady && wsl) {
     return {
-      envReady,
-      wsl,
-      webhookCreds,
-      webhookSecret,
+      ...base,
       signer: "local_viem",
-      note: blockedNote,
+      note: "Dynamic credentials and WSL are present but the MPC signer is not running. Start it with: npm run mpc:serve",
     };
   }
 
   if (envReady) {
     return {
-      envReady,
-      wsl,
-      webhookCreds,
-      webhookSecret,
+      ...base,
       signer: "local_viem",
-      note: blockedNote,
+      note: "Dynamic credentials are present but there is no Linux runtime for the MPC binaries. Signing is local viem.",
     };
   }
 
   return {
-    envReady,
-    wsl,
-    webhookCreds,
-    webhookSecret,
+    ...base,
     signer: "local_viem",
     note: "No Dynamic API credentials. Authority grant is app-level. Signing is local viem.",
   };

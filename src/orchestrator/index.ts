@@ -53,6 +53,56 @@ export type OrchestratorResult = {
   handoff?: unknown;
 };
 
+type MpcStepResult =
+  | {
+      signer: "dynamic_mpc";
+      live: true;
+      from: string;
+      txHash: string;
+      explorerUrl: string;
+    }
+  | { signer: "local_viem"; live: false; note: string; lastMpcTx?: string };
+
+/**
+ * Ask the Dynamic MPC sidecar to sign a tiny self-transfer from the server
+ * wallet. Never throws: if the Linux signer is not running we say so, and cite
+ * the last proven MPC hash rather than implying this run produced one.
+ */
+async function signDynamicProofOfAuthority(): Promise<MpcStepResult> {
+  const { probeMpcSigner, mpcSignAndSend, getMpcProof } = await import(
+    "@/wallet/dynamic-mpc"
+  );
+  const proof = getMpcProof();
+  const live = await probeMpcSigner();
+  if (!live?.ready) {
+    return {
+      signer: "local_viem",
+      live: false,
+      note: "Dynamic MPC signer offline (npm run mpc:serve). This run signed with the local execution key.",
+      lastMpcTx: proof?.txHash,
+    };
+  }
+  try {
+    const sent = await mpcSignAndSend();
+    return {
+      signer: "dynamic_mpc",
+      live: true,
+      from: sent.address,
+      txHash: sent.txHash,
+      explorerUrl: sent.explorerUrl,
+    };
+  } catch (err) {
+    return {
+      signer: "local_viem",
+      live: false,
+      note: `Dynamic MPC sign failed: ${
+        err instanceof Error ? err.message : String(err)
+      }`,
+      lastMpcTx: proof?.txHash,
+    };
+  }
+}
+
 function captureDeny(
   agent: "proof" | "execution",
   toolName: string,
@@ -166,6 +216,18 @@ export async function runOrchestrator(
     agent: "execution",
     input: { amountIn: swapAmount, fromToken: "ETH", toToken: "USDC" },
     output: swap,
+  });
+
+  // Delegated authority, exercised. When the Dynamic MPC signer is up, the
+  // execution-agent proves the grant by making the *server wallet* sign a tx —
+  // `from` is the MPC address, not our local key. Best-effort: a missing signer
+  // is reported as unavailable rather than failing the run.
+  const mpc = await signDynamicProofOfAuthority();
+  toolCalls.push({
+    toolName: "dynamic_mpc_sign",
+    agent: "execution",
+    input: { intent: "prove delegated authority with an MPC signature" },
+    output: mpc,
   });
 
   const pay = await payComplianceCheck(
