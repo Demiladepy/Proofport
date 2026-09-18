@@ -12,9 +12,7 @@ import { privateKeyToAccount } from "viem/accounts";
 import { assertDelegationActive } from "@/delegation";
 import { setWalletInfo, type AgentWalletInfo, type SendTxResult } from "./index";
 
-const STORE =
-  process.env.DYNAMIC_WALLET_STORE ??
-  join(process.cwd(), ".data", "wallet.json");
+const STORE = join(process.cwd(), ".data", "wallet.json");
 const RPC = process.env.BASE_SEPOLIA_RPC_URL ?? "https://sepolia.base.org";
 
 type PersistedWallet = {
@@ -26,13 +24,18 @@ type PersistedWallet = {
 };
 
 function saveStore(data: PersistedWallet) {
-  mkdirSync(dirname(STORE), { recursive: true });
-  writeFileSync(STORE, JSON.stringify(data, null, 2));
+  mkdirSync(/* turbopackIgnore: true */ dirname(STORE), { recursive: true });
+  writeFileSync(
+    /* turbopackIgnore: true */ STORE,
+    JSON.stringify(data, null, 2),
+  );
 }
 
 function loadStore(): PersistedWallet | null {
-  if (!existsSync(STORE)) return null;
-  return JSON.parse(readFileSync(STORE, "utf8")) as PersistedWallet;
+  if (!existsSync(/* turbopackIgnore: true */ STORE)) return null;
+  return JSON.parse(
+    readFileSync(/* turbopackIgnore: true */ STORE, "utf8"),
+  ) as PersistedWallet;
 }
 
 export function hasDynamicEnv(): boolean {

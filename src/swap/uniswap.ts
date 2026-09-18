@@ -64,8 +64,15 @@ function minOut(quoted: bigint): bigint {
   return (quoted * (10_000n - SLIPPAGE_BPS)) / 10_000n;
 }
 
+function createBasePublicClient() {
+  return createPublicClient({
+    chain: baseSepolia,
+    transport: http(RPC),
+  });
+}
+
 async function quoteFee(
-  publicClient: ReturnType<typeof createPublicClient>,
+  publicClient: ReturnType<typeof createBasePublicClient>,
   tokenIn: Address,
   tokenOut: Address,
   amountIn: bigint,
@@ -91,10 +98,7 @@ async function quoteFee(
 export async function quoteUniswapV3(
   req: SwapRequest,
 ): Promise<{ amountOut: string; fee: number }> {
-  const publicClient = createPublicClient({
-    chain: baseSepolia,
-    transport: http(RPC),
-  });
+  const publicClient = createBasePublicClient();
   const tokenIn = resolveToken(req.fromToken);
   const tokenOut = resolveToken(req.toToken);
   const amountIn = amountInWei(req);
@@ -132,10 +136,7 @@ export class UniswapSwapProvider implements SwapProvider {
     const account = privateKeyToAccount(
       (pk.startsWith("0x") ? pk : `0x${pk}`) as Hex,
     );
-    const publicClient = createPublicClient({
-      chain: baseSepolia,
-      transport: http(RPC),
-    });
+    const publicClient = createBasePublicClient();
     const walletClient = createWalletClient({
       account,
       chain: baseSepolia,

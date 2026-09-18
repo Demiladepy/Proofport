@@ -19,8 +19,10 @@ export async function GET() {
     walletsNote = store.note.replace(/—/g, ":");
   } catch {
     const file = join(process.cwd(), ".data", "wallets-v2.json");
-    if (existsSync(file)) {
-      const j = JSON.parse(readFileSync(file, "utf8")) as {
+    if (existsSync(/* turbopackIgnore: true */ file)) {
+      const j = JSON.parse(
+        readFileSync(/* turbopackIgnore: true */ file, "utf8"),
+      ) as {
         proof: { address: string };
         execution: { address: string };
         note?: string;
@@ -34,8 +36,13 @@ export async function GET() {
   let reputationContract =
     process.env.REPUTATION_CONTRACT ?? FALLBACK_CONTRACT;
   const addrFile = join(process.cwd(), ".data", "reputation-address.json");
-  if (!process.env.REPUTATION_CONTRACT && existsSync(addrFile)) {
-    const j = JSON.parse(readFileSync(addrFile, "utf8")) as { address: string };
+  if (
+    !process.env.REPUTATION_CONTRACT &&
+    existsSync(/* turbopackIgnore: true */ addrFile)
+  ) {
+    const j = JSON.parse(
+      readFileSync(/* turbopackIgnore: true */ addrFile, "utf8"),
+    ) as { address: string };
     reputationContract = j.address;
   }
 

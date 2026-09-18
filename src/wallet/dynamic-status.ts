@@ -57,8 +57,12 @@ export async function probeWslSigner(): Promise<{
 export async function getDynamicRailStatus(): Promise<DynamicRailStatus> {
   const envReady = hasDynamicEnv();
   const wsl = hasWsl();
-  const webhookFile = join(process.cwd(), ".data", "dynamic-delegation-creds.json");
-  const webhookCreds = existsSync(webhookFile);
+  const webhookFile = join(
+    process.cwd(),
+    ".data",
+    "dynamic-delegation-creds.json",
+  );
+  const webhookCreds = existsSync(/* turbopackIgnore: true */ webhookFile);
   const webhookSecret = Boolean(process.env.DELEGATION_WEBHOOK_SECRET?.trim());
   const live = await probeWslSigner();
   const blockedNote =
