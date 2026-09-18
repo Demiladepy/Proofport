@@ -33,12 +33,24 @@ type Delegation = {
   note?: string;
 };
 
+type RailStatus = {
+  chain: string;
+  explorerBase: string;
+  proofWallet: string;
+  executionWallet: string;
+  reputationContract: string;
+  walletsNote: string;
+  swapProvider: string;
+  x402Mode: string;
+  partner: string;
+};
+
 const ALL_IDENTITY = [
-  { key: "verified", label: "Verified" },
-  { key: "country", label: "Country" },
-  { key: "over_18", label: "Over 18" },
-  { key: "full_name", label: "Full name" },
-  { key: "id_number", label: "ID number" },
+  { key: "verified", label: "Verified", idle: "Will disclose" },
+  { key: "country", label: "Country", idle: "Will disclose" },
+  { key: "over_18", label: "Over 18", idle: "Stays private" },
+  { key: "full_name", label: "Full name", idle: "Stays private" },
+  { key: "id_number", label: "ID number", idle: "Stays private" },
 ] as const;
 
 const CLAIM_COLORS = [
@@ -49,14 +61,44 @@ const CLAIM_COLORS = [
   "#9f4fff",
 ] as const;
 
-const DEMO_BEATS = [
-  { id: "proof", label: "Disclose" },
-  { id: "capability", label: "Bound" },
-  { id: "swap", label: "Swap" },
-  { id: "x402", label: "Pay" },
-  { id: "reputation", label: "Attest" },
-  { id: "handoff", label: "Hand off" },
+const PIPELINE = [
+  { id: "proof", label: "Disclose", agent: "Proof" },
+  { id: "capability", label: "Bound", agent: "Both" },
+  { id: "swap", label: "Swap", agent: "Execution" },
+  { id: "x402", label: "Pay", agent: "Execution" },
+  { id: "reputation", label: "Attest", agent: "Orchestrator" },
+  { id: "handoff", label: "Hand off", agent: "Execution" },
 ] as const;
+
+const PLAN_IDLE = [
+  { agent: "proof", tool: "get_credentials" },
+  { agent: "proof", tool: "present_proof" },
+  { agent: "proof", tool: "attempt_swap" },
+  { agent: "execution", tool: "attempt_read_credential" },
+  { agent: "execution", tool: "swap" },
+  { agent: "execution", tool: "pay_x402" },
+  { agent: "orchestrator", tool: "write_attestation" },
+  { agent: "execution", tool: "request_handoff" },
+] as const;
+
+const DENIALS_IDLE = [
+  {
+    agent: "proof",
+    tool: "attempt_swap",
+    why: "Proof agent has no fund tools",
+    color: "#0090ff",
+  },
+  {
+    agent: "execution",
+    tool: "attempt_read_credential",
+    why: "Execution agent never sees claims",
+    color: "#9f4fff",
+  },
+] as const;
+
+function shortAddr(addr: string) {
+  return `${addr.slice(0, 6)}…${addr.slice(-4)}`;
+}
 
 function HeroArtLeft() {
   return (
@@ -176,6 +218,7 @@ export default function Home() {
   const [running, setRunning] = useState(false);
   const [result, setResult] = useState<AgentResponse | null>(null);
   const [delegation, setDelegation] = useState<Delegation | null>(null);
+  const [rail, setRail] = useState<RailStatus | null>(null);
   const [error, setError] = useState<string | null>(null);
   const inputRef = useRef<HTMLTextAreaElement>(null);
   const resultsRef = useRef<HTMLElement>(null);
@@ -187,6 +230,10 @@ export default function Home() {
 
   useEffect(() => {
     void refreshDelegation();
+    void fetch("/api/status")
+      .then((r) => r.json())
+      .then((data: RailStatus) => setRail(data))
+      .catch(() => setRail(null));
   }, [refreshDelegation]);
 
   const presentOut = result?.toolCalls?.find((t) => t.toolName === "present_proof")
@@ -280,6 +327,7 @@ export default function Home() {
   const toolCalls = result?.toolCalls ?? [];
   const openCount = disclosed.size;
   const doneCount = Object.values(beatDone).filter(Boolean).length;
+  const explorer = rail?.explorerBase ?? "https://sepolia.basescan.org";
 
   return (
     <div className="pp-shell">
@@ -288,7 +336,11 @@ export default function Home() {
           <div className="pp-nav-mark" aria-hidden="true" />
           <p className="pp-nav-name">Proofport</p>
         </div>
-        <p className="pp-nav-center">Runtime · Bankr × Propaganda</p>
+        <div className="pp-nav-links">
+          <a href="#how">How it works</a>
+          <a href="#agents">Agents</a>
+          <a href="#demo">Demo</a>
+        </div>
         <div className="pp-nav-actions">
           <span
             className="pp-status"
@@ -308,23 +360,175 @@ export default function Home() {
       <header className="pp-hero">
         <HeroArtLeft />
         <div className="pp-hero-center">
-          <p className="pp-eyebrow">Credit &amp; reputation rail</p>
+          <p className="pp-eyebrow">Credit and reputation rail</p>
           <h1 className="pp-brand">Proofport</h1>
           <p className="pp-tagline">
-            Prove privately. Move funds on a boolean. Attest onchain — never
-            PII.
+            Prove privately. Move funds on a boolean. Attest onchain, never PII.
           </p>
+          <div className="pp-hero-ctas">
+            <a className="pp-btn-dark pp-btn-lg" href="#demo">
+              Open the cash-out demo
+            </a>
+            <a className="pp-link-demo" href="#how">
+              See the rail
+            </a>
+          </div>
         </div>
         <HeroArtRight />
       </header>
 
-      <section className="pp-ask" id="ask" aria-label="Ask the agent">
+      <section className="pp-how" id="how">
+        <p className="pp-section-kicker">What actually happens</p>
+        <h2 className="pp-section-title">Six steps, two agents, one boolean</h2>
+        <ol className="pp-how-grid">
+          <li>
+            <span>01</span>
+            <strong>Issue credentials</strong>
+            <p>
+              SD-JWT identity and provenance. Name and ID stay cryptographically
+              withheld.
+            </p>
+          </li>
+          <li>
+            <span>02</span>
+            <strong>Present proof</strong>
+            <p>
+              Proof agent discloses verified + country only. Partner never sees
+              the rest.
+            </p>
+          </li>
+          <li>
+            <span>03</span>
+            <strong>Hard capability denials</strong>
+            <p>
+              Proof cannot swap. Execution cannot read credentials. Enforced in
+              the tool registry, not a prompt.
+            </p>
+          </li>
+          <li>
+            <span>04</span>
+            <strong>Swap and self-pay</strong>
+            <p>
+              Execution wallet converts to USDC, then pays the x402 compliance
+              check from its own funds.
+            </p>
+          </li>
+          <li>
+            <span>05</span>
+            <strong>Write reputation</strong>
+            <p>
+              Custom Base Sepolia contract stores subject, kind, and evidence
+              hash. Zero PII fields.
+            </p>
+          </li>
+          <li>
+            <span>06</span>
+            <strong>Partner hand-off</strong>
+            <p>
+              Licensed-partner mock re-verifies the presentation. Status is
+              settlement_initiated. No fiat moves here.
+            </p>
+          </li>
+        </ol>
+      </section>
+
+      <section className="pp-agents" id="agents">
+        <article className="pp-agent-card">
+          <p className="pp-section-kicker">Proof agent</p>
+          <h3>Credentials only</h3>
+          <p>
+            Holds IdentityVC and ProvenanceVC. Can present and check
+            delegation. Cannot touch funds.
+          </p>
+          <ul>
+            <li>get_credentials</li>
+            <li>present_proof</li>
+            <li>check_delegation</li>
+            <li className="deny">attempt_swap (hard deny)</li>
+          </ul>
+          {rail && (
+            <a
+              className="pp-mono-link"
+              href={`${explorer}/address/${rail.proofWallet}`}
+              target="_blank"
+              rel="noreferrer"
+            >
+              {shortAddr(rail.proofWallet)}
+            </a>
+          )}
+        </article>
+        <article className="pp-agent-card pp-agent-card-dark">
+          <p className="pp-section-kicker">Execution agent</p>
+          <h3>Funds only</h3>
+          <p>
+            Receives a verifier boolean, not claims. Swaps, pays x402, requests
+            hand-off. Cannot read credentials.
+          </p>
+          <ul>
+            <li>swap</li>
+            <li>pay_x402</li>
+            <li>request_handoff</li>
+            <li className="deny">attempt_read_credential (hard deny)</li>
+          </ul>
+          {rail && (
+            <a
+              className="pp-mono-link"
+              href={`${explorer}/address/${rail.executionWallet}`}
+              target="_blank"
+              rel="noreferrer"
+            >
+              {shortAddr(rail.executionWallet)}
+            </a>
+          )}
+        </article>
+      </section>
+
+      {rail && (
+        <section className="pp-rail" aria-label="Live rail">
+          <div>
+            <span>Chain</span>
+            <strong>{rail.chain}</strong>
+          </div>
+          <div>
+            <span>Reputation contract</span>
+            <strong>
+              <a
+                href={`${explorer}/address/${rail.reputationContract}`}
+                target="_blank"
+                rel="noreferrer"
+              >
+                {shortAddr(rail.reputationContract)}
+              </a>
+            </strong>
+          </div>
+          <div>
+            <span>Swap</span>
+            <strong>{rail.swapProvider}</strong>
+          </div>
+          <div>
+            <span>x402</span>
+            <strong>{rail.x402Mode}</strong>
+          </div>
+          <div>
+            <span>Partner</span>
+            <strong>{rail.partner}</strong>
+          </div>
+        </section>
+      )}
+
+      <section className="pp-ask" id="demo" aria-label="Run the cash-out">
+        <p className="pp-section-kicker">Live demo</p>
+        <h2 className="pp-section-title">Cash-out wedge</h2>
+        <p className="pp-ask-lead">
+          One request drives the orchestrator: proof, denials, swap, x402,
+          attestation, partner. Grant authority, then run.
+        </p>
         <textarea
           ref={inputRef}
           value={message}
           onChange={(e) => setMessage(e.target.value)}
           rows={2}
-          placeholder="Describe the cash-out…"
+          placeholder="Describe the cash-out"
           aria-label="Agent prompt"
           onKeyDown={(e) => {
             if ((e.metaKey || e.ctrlKey) && e.key === "Enter") {
@@ -341,24 +545,24 @@ export default function Home() {
             onClick={() => void run()}
           >
             {running
-              ? "Working…"
+              ? "Running pipeline"
               : delegation?.revokedAt
                 ? "Grant authority first"
-                : "Run demo"}
+                : "Run cash-out"}
           </button>
-          <p className="pp-hint">⌘ / Ctrl + Enter</p>
+          <p className="pp-hint">Ctrl + Enter</p>
         </div>
         {error && (
           <p className="pp-error">
             {error === "authority revoked"
-              ? "Authority revoked — Grant again to continue."
+              ? "Authority revoked. Grant again to continue."
               : error}
           </p>
         )}
       </section>
 
-      <ol className="pp-beats" aria-label="Demo progress">
-        {DEMO_BEATS.map((beat) => {
+      <ol className="pp-beats" aria-label="Pipeline progress">
+        {PIPELINE.map((beat) => {
           const done = beatDone[beat.id as keyof typeof beatDone];
           return (
             <li
@@ -377,11 +581,13 @@ export default function Home() {
           );
         })}
       </ol>
-      {(hasRun || running) && (
-        <p className="pp-beats-meta">
-          {running ? "Running pipeline…" : `${doneCount} of ${DEMO_BEATS.length} beats complete`}
-        </p>
-      )}
+      <p className="pp-beats-meta">
+        {running
+          ? "Orchestrator running"
+          : hasRun
+            ? `${doneCount} of ${PIPELINE.length} steps complete`
+            : "Idle preview. Run cash-out to fill live results."}
+      </p>
 
       {handoffOk && (
         <div className="pp-success" role="status">
@@ -408,18 +614,20 @@ export default function Home() {
         <section className="pp-module pp-module-disclosure">
           <div className="pp-module-head">
             <h2 className="pp-module-title">Selective disclosure</h2>
-            {hasRun && (
-              <span className="pp-chip">
-                {openCount} open · {ALL_IDENTITY.length - openCount} locked
-              </span>
-            )}
+            <span className="pp-chip">
+              {hasRun
+                ? `${openCount} open, ${ALL_IDENTITY.length - openCount} locked`
+                : "Preview"}
+            </span>
           </div>
           <p className="pp-module-lead">
-            Only what the step needs leaves the device.
+            Only verified and country leave the device. Full name and ID never
+            enter the presentation.
           </p>
           <ul className="pp-rows">
             {ALL_IDENTITY.map((claim, i) => {
               const open = disclosed.has(claim.key);
+              const willShare = claim.idle === "Will disclose";
               return (
                 <li
                   key={claim.key}
@@ -428,7 +636,9 @@ export default function Home() {
                       ? "pp-row pp-row-open"
                       : hasRun
                         ? "pp-row pp-row-locked"
-                        : "pp-row pp-row-idle"
+                        : willShare
+                          ? "pp-row pp-row-will"
+                          : "pp-row pp-row-idle"
                   }
                   style={open ? { animationDelay: `${i * 50}ms` } : undefined}
                 >
@@ -450,8 +660,8 @@ export default function Home() {
                           presentOut?.disclosedClaims?.[claim.key] ?? "yes",
                         )
                       : hasRun
-                        ? "locked"
-                        : "—"}
+                        ? "Locked"
+                        : claim.idle}
                   </span>
                 </li>
               );
@@ -465,45 +675,50 @@ export default function Home() {
         <section className="pp-module pp-module-dark">
           <h2 className="pp-module-title">Capability block</h2>
           <p className="pp-module-lead">
-            Denied in code — not by prompt.
+            Denied in the tool registry, not by prompt.
           </p>
-          {capabilityBlocks.length ? (
-            <ul className="pp-rows">
-              {capabilityBlocks.map((b, i) => {
-                const iconColors = ["#0090ff", "#9f4fff", "#00ca48", "#ff58ae"];
-                return (
-                  <li key={`${b.toolName}-${i}`} className="pp-row">
-                    <div className="pp-row-main">
-                      <span
-                        className="pp-row-dot"
-                        style={{
-                          background: iconColors[i % iconColors.length],
-                          borderColor: "transparent",
-                        }}
-                        aria-hidden="true"
-                      />
-                      <span className="pp-row-name">
-                        {b.agent}-agent
-                        <em>{b.toolName}</em>
-                      </span>
-                    </div>
-                    <span className="pp-row-meta">denied</span>
-                  </li>
-                );
-              })}
-            </ul>
-          ) : (
-            <p className="pp-empty">Run to show proof ≠ funds, execution ≠ credentials.</p>
-          )}
+          <ul className="pp-rows">
+            {(capabilityBlocks.length
+              ? capabilityBlocks.map((b, i) => ({
+                  agent: b.agent ?? "?",
+                  tool: b.toolName,
+                  why: "capability denied",
+                  color: ["#0090ff", "#9f4fff"][i % 2],
+                }))
+              : DENIALS_IDLE
+            ).map((b) => (
+              <li key={`${b.agent}-${b.tool}`} className="pp-row">
+                <div className="pp-row-main">
+                  <span
+                    className="pp-row-dot"
+                    style={{
+                      background: b.color,
+                      borderColor: "transparent",
+                    }}
+                    aria-hidden="true"
+                  />
+                  <span className="pp-row-name">
+                    {b.agent}-agent
+                    <em>{b.tool}</em>
+                  </span>
+                </div>
+                <span className="pp-row-meta">
+                  {capabilityBlocks.length ? "Denied" : "Will deny"}
+                </span>
+              </li>
+            ))}
+          </ul>
         </section>
 
         <section className="pp-module">
           <div className="pp-module-head">
             <h2 className="pp-module-title">Reputation</h2>
-            {reputation?.txHash && <span className="pp-chip">PII-free</span>}
+            <span className="pp-chip">
+              {reputation?.txHash ? "Written" : "PII-free"}
+            </span>
           </div>
           <p className="pp-module-lead">
-            Onchain hashes only — portable credit seed.
+            Onchain hashes only. Portable credit seed.
           </p>
           <div className="pp-kv">
             <div>
@@ -520,34 +735,50 @@ export default function Home() {
                       : "Basescan"}
                   </a>
                 ) : (
-                  "—"
+                  "Waiting for write"
                 )}
               </strong>
             </div>
             <div>
               <span>PII onchain</span>
               <strong className={reputation ? "ok" : ""}>
-                {reputation ? "0 fields" : "—"}
+                {reputation ? "0 fields" : "Contract has no PII slots"}
               </strong>
             </div>
+            {rail && (
+              <div>
+                <span>Contract</span>
+                <strong>
+                  <a
+                    href={`${explorer}/address/${rail.reputationContract}`}
+                    target="_blank"
+                    rel="noreferrer"
+                  >
+                    {shortAddr(rail.reputationContract)}
+                  </a>
+                </strong>
+              </div>
+            )}
           </div>
         </section>
 
         <section className="pp-module pp-module-plan">
-          <h2 className="pp-module-title">Plan</h2>
-          {toolCalls.length ? (
-            <ol className="pp-plan">
-              {toolCalls.map((t, i) => (
-                <li key={`${t.toolName}-${i}`}>
-                  <span>{String(i + 1).padStart(2, "0")}</span>
-                  {t.agent ? `${t.agent}:` : ""}
-                  {t.toolName}
-                </li>
-              ))}
-            </ol>
-          ) : (
-            <p className="pp-empty">proof → deny → swap → pay → attest → handoff</p>
-          )}
+          <h2 className="pp-module-title">Orchestrator plan</h2>
+          <ol className="pp-plan">
+            {(toolCalls.length
+              ? toolCalls.map((t) => ({
+                  agent: t.agent ?? "",
+                  tool: t.toolName,
+                }))
+              : PLAN_IDLE
+            ).map((t, i) => (
+              <li key={`${t.tool}-${i}`}>
+                <span>{String(i + 1).padStart(2, "0")}</span>
+                {t.agent ? `${t.agent}:` : ""}
+                {t.tool}
+              </li>
+            ))}
+          </ol>
         </section>
 
         <section className="pp-module pp-module-settle">
@@ -555,17 +786,23 @@ export default function Home() {
           <div className="pp-kv">
             <div>
               <span>Swap</span>
-              <strong>{swapOut?.provider ?? "—"}</strong>
+              <strong>{swapOut?.provider ?? "ETH to USDC (pending)"}</strong>
+              {swapOut?.note && <p className="muted">{swapOut.note}</p>}
             </div>
             <div>
-              <span>x402</span>
+              <span>x402 self-pay</span>
               <strong className={payOut?.paidVia === "x402" ? "ok" : ""}>
-                {payOut?.paidVia === "x402" ? "Paid" : "—"}
+                {payOut?.paidVia === "x402"
+                  ? "Paid"
+                  : "Compliance check (pending)"}
               </strong>
             </div>
             <div>
-              <span>Hand-off</span>
-              <strong>{handoffOut?.status ?? "—"}</strong>
+              <span>Partner hand-off</span>
+              <strong>
+                {handoffOut?.status ?? "No fiat. Re-verify then initiate."}
+              </strong>
+              {handoffOut?.note && <p className="muted">{handoffOut.note}</p>}
             </div>
           </div>
         </section>
@@ -573,7 +810,9 @@ export default function Home() {
 
       <footer className="pp-footer">
         <p>Nigeria is the wedge, not the ceiling.</p>
-        <p className="pp-footer-meta">MOCKS.md · Base Sepolia · Dynamic + Uniswap</p>
+        <p className="pp-footer-meta">
+          Honest boundaries in MOCKS.md. Base Sepolia. Dynamic + Uniswap tracks.
+        </p>
       </footer>
     </div>
   );

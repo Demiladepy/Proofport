@@ -10,7 +10,7 @@ export class MockSwapProvider implements SwapProvider {
       provider: "mock",
       txHash,
       amountOut: req.toToken === "USDC" ? req.amountIn : "0.01",
-      note: "MockSwap — no on-chain settlement. See MOCKS.md.",
+      note: "MockSwap. No on-chain settlement. See MOCKS.md.",
     };
   }
 }

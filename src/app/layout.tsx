@@ -17,7 +17,7 @@ const inter = Inter({
 export const metadata: Metadata = {
   title: "Proofport",
   description:
-    "Onchain credit & reputation rail — selective disclosure, bounded agents, PII-free attestation.",
+    "Onchain credit and reputation rail. Selective disclosure, two bounded agents, PII-free attestation.",
 };
 
 export default function RootLayout({ children }: LayoutProps<"/">) {
