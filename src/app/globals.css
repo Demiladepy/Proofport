@@ -955,13 +955,140 @@ a.pp-btn-dark:hover {
   min-width: 1.4rem;
 }
 
-.pp-footer p {
-  margin: 0;
+/* Footer — Family.co: bloom mark left, three Inter columns, quiet © row */
+.pp-footer {
+  margin-top: var(--section-gap);
+  padding: var(--spacing-80) 0 0;
+  border-top: none;
+  max-width: none;
+  font-size: var(--text-caption);
+  line-height: var(--leading-caption);
+  color: var(--color-body-brown);
 }
 
-.pp-footer-meta {
-  margin-top: 6px !important;
-  font-size: var(--text-micro) !important;
+.pp-footer-inner {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: var(--spacing-48);
+  padding-bottom: var(--spacing-60);
+}
+
+.pp-footer-logo {
+  position: relative;
+  width: 108px;
+  height: 108px;
+  flex-shrink: 0;
+}
+
+.pp-footer-mark {
+  width: 96px;
+  height: 96px;
+  border-radius: 42%;
+  background: var(--color-sky-blue);
+  border: 2px solid var(--color-heading-charcoal);
+  position: relative;
+}
+
+.pp-footer-mark::before,
+.pp-footer-mark::after {
+  content: "";
+  position: absolute;
+  top: 34px;
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  background: var(--color-heading-charcoal);
+}
+
+.pp-footer-mark::before {
+  left: 24px;
+}
+
+.pp-footer-mark::after {
+  right: 24px;
+}
+
+.pp-footer-petal {
+  position: absolute;
+  right: 0;
+  bottom: 8px;
+  width: 28px;
+  height: 28px;
+  border-radius: 9px;
+  background: var(--color-sun-yellow);
+  border: 1.5px solid var(--color-heading-charcoal);
+  transform: rotate(18deg);
+}
+
+.pp-footer-groups {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--spacing-48) var(--spacing-80);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.pp-footer-groups > li {
+  min-width: 140px;
+}
+
+.pp-footer-groups h5 {
+  margin: 0 0 14px;
+  font-family: var(--font-inter);
+  font-size: var(--text-caption);
+  font-weight: 500;
+  line-height: var(--leading-caption);
+  letter-spacing: var(--tracking-caption);
+  color: var(--color-heading-charcoal);
+}
+
+.pp-footer-groups ul {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  display: grid;
+  gap: 10px;
+}
+
+.pp-footer-groups a,
+.pp-footer-groups span {
+  font-size: var(--text-caption);
+  font-weight: 400;
+  line-height: var(--leading-caption);
+  letter-spacing: var(--tracking-caption);
+  color: var(--color-body-brown);
+  text-decoration: none;
+}
+
+.pp-footer-groups a:hover {
+  color: var(--color-ember-orange);
+  text-decoration: none;
+}
+
+.pp-footer-groups a:focus-visible {
+  outline: 2px solid var(--color-ink-black);
+  outline-offset: 3px;
+  border-radius: 2px;
+}
+
+.pp-footer-info {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--spacing-12) var(--spacing-24);
+  padding: var(--spacing-20) 0 var(--spacing-8);
+}
+
+.pp-footer-info p {
+  margin: 0;
+  font-size: var(--text-micro);
+  line-height: var(--leading-micro);
+  letter-spacing: var(--tracking-micro);
+  color: var(--color-muted-gray);
 }
 
 /* Modules — Family card grid density */
@@ -1290,15 +1417,6 @@ a.pp-btn-dark:hover {
   color: var(--color-muted-gray);
 }
 
-.pp-footer {
-  margin-top: var(--section-gap);
-  padding-top: var(--spacing-24);
-  border-top: 1px solid var(--color-stone-surface);
-  max-width: 520px;
-  font-size: var(--text-caption);
-  line-height: var(--leading-caption);
-  color: var(--color-muted-gray);
-}
 
 /* Illustrations */
 .pp-mascot {

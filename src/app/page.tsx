@@ -809,10 +809,93 @@ export default function Home() {
       </main>
 
       <footer className="pp-footer">
-        <p>Nigeria is the wedge, not the ceiling.</p>
-        <p className="pp-footer-meta">
-          Honest boundaries in MOCKS.md. Base Sepolia. Dynamic + Uniswap tracks.
-        </p>
+        <div className="pp-footer-inner">
+          <div className="pp-footer-logo" aria-hidden="true">
+            <div className="pp-footer-mark" />
+            <span className="pp-footer-petal" />
+          </div>
+          <nav aria-label="Footer">
+            <ul className="pp-footer-groups">
+              <li>
+                <h5>Product</h5>
+                <ul>
+                  <li>
+                    <a href="#how">How it works</a>
+                  </li>
+                  <li>
+                    <a href="#agents">Two agents</a>
+                  </li>
+                  <li>
+                    <a href="#demo">Watch the demo</a>
+                  </li>
+                  <li>
+                    <a href="#results">Live results</a>
+                  </li>
+                </ul>
+              </li>
+              <li>
+                <h5>Rail</h5>
+                <ul>
+                  <li>
+                    <a
+                      href={`${explorer}/address/${rail?.executionWallet ?? "0x0afC983C15444DFDaaD76aBF22f1D1053035AE67"}`}
+                      target="_blank"
+                      rel="noreferrer"
+                    >
+                      Execution wallet
+                    </a>
+                  </li>
+                  <li>
+                    <a
+                      href={`${explorer}/address/${rail?.proofWallet ?? "0xab18207957208a31025306f08556893e2a15dBa9"}`}
+                      target="_blank"
+                      rel="noreferrer"
+                    >
+                      Proof wallet
+                    </a>
+                  </li>
+                  <li>
+                    <a
+                      href={`${explorer}/address/${rail?.reputationContract ?? "0xac188e1e9d624b346006dfe233290751165f2f16"}`}
+                      target="_blank"
+                      rel="noreferrer"
+                    >
+                      Reputation contract
+                    </a>
+                  </li>
+                  <li>
+                    <a href="https://sepolia.basescan.org">Base Sepolia</a>
+                  </li>
+                </ul>
+              </li>
+              <li>
+                <h5>Company</h5>
+                <ul>
+                  <li>
+                    <a href="https://github.com/Demiladepy/Proofport">
+                      GitHub
+                    </a>
+                  </li>
+                  <li>
+                    <a href="https://github.com/Demiladepy/Proofport/blob/main/MOCKS.md">
+                      Honest mocks
+                    </a>
+                  </li>
+                  <li>
+                    <span>Runtime · Bankr × Propaganda</span>
+                  </li>
+                  <li>
+                    <span>No PII onchain</span>
+                  </li>
+                </ul>
+              </li>
+            </ul>
+          </nav>
+        </div>
+        <div className="pp-footer-info">
+          <p>© 2026 Proofport</p>
+          <p>Nigeria is the wedge, not the ceiling.</p>
+        </div>
       </footer>
     </div>
   );

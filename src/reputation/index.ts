@@ -44,6 +44,9 @@ export type AttestationRead = {
   piiFields: string[];
 };
 
+const FALLBACK_CONTRACT =
+  "0xac188e1e9d624b346006dfe233290751165f2f16" as Address;
+
 function loadContractAddress(): Address | null {
   if (process.env.REPUTATION_CONTRACT) {
     return process.env.REPUTATION_CONTRACT as Address;
@@ -54,7 +57,7 @@ function loadContractAddress(): Address | null {
     };
     return j.address;
   }
-  return null;
+  return FALLBACK_CONTRACT;
 }
 
 export function saveContractAddress(address: Address) {
