@@ -1,5 +1,5 @@
 import "dotenv/config";
-import { runAgent } from "../../src/agent";
+import { runAgent } from "../../src/orchestrator";
 import { grantDelegation } from "../../src/delegation";
 
 async function main() {
@@ -34,7 +34,9 @@ async function main() {
     hasHandoff: names.includes("request_handoff"),
     minimalDisclosure:
       Array.isArray(presentOut?.disclosed) &&
-      presentOut!.disclosed!.every((c) => ["verified", "country"].includes(c)) &&
+      presentOut!.disclosed!.every((c) =>
+        ["verified", "country", "over_18"].includes(c),
+      ) &&
       !presentOut!.disclosed!.includes("full_name") &&
       !presentOut!.disclosed!.includes("id_number"),
     finalText: result.text,

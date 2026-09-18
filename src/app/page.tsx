@@ -15,6 +15,16 @@ type AgentResponse = {
   toolCalls?: ToolCall[];
   capabilityBlocks?: ToolCall[];
   proofVerified?: boolean;
+  disclosure?: {
+    claims: string[];
+    rationale: string;
+    source: "openai" | "fallback";
+  };
+  request?: {
+    recipient: string;
+    amount: string;
+    country: string;
+  };
   reputation?: {
     txHash?: string;
     explorerUrl?: string;
@@ -41,6 +51,7 @@ type RailStatus = {
   reputationContract: string;
   walletsNote: string;
   swapProvider: string;
+  uniswapLive?: boolean;
   x402Mode: string;
   partner: string;
 };
@@ -62,12 +73,66 @@ const CLAIM_COLORS = [
 ] as const;
 
 const PIPELINE = [
-  { id: "proof", label: "Disclose", agent: "Proof" },
-  { id: "capability", label: "Bound", agent: "Both" },
-  { id: "swap", label: "Swap", agent: "Execution" },
-  { id: "x402", label: "Pay", agent: "Execution" },
-  { id: "reputation", label: "Attest", agent: "Orchestrator" },
-  { id: "handoff", label: "Hand off", agent: "Execution" },
+  {
+    id: "issuer",
+    label: "Issue",
+    agent: "Proof",
+    honesty: "sim" as const,
+    honestyLabel: "ID issuer = SIMULATED",
+  },
+  {
+    id: "proof",
+    label: "Disclose",
+    agent: "Proof",
+    honesty: "live" as const,
+    honestyLabel: "Selective disclosure = LIVE",
+  },
+  {
+    id: "capability",
+    label: "Bound",
+    agent: "Both",
+    honesty: "live" as const,
+    honestyLabel: "Capability denial = LIVE",
+  },
+  {
+    id: "swap",
+    label: "Swap",
+    agent: "Execution",
+    honesty: "sim" as const,
+    honestyLabel: "Swap = SIMULATED (mock)",
+    liveLabel: "Swap = LIVE (Base Sepolia Uniswap)",
+  },
+  {
+    id: "x402",
+    label: "Pay",
+    agent: "Execution",
+    honesty: "mixed" as const,
+    honestyLabel: "x402 = LIVE header / SIMULATED result",
+  },
+  {
+    id: "reputation",
+    label: "Attest",
+    agent: "Orchestrator",
+    honesty: "live" as const,
+    honestyLabel: "Onchain attestation = LIVE (Base Sepolia)",
+  },
+  {
+    id: "handoff",
+    label: "Hand off",
+    agent: "Execution",
+    honesty: "sim" as const,
+    honestyLabel: "Partner/bank = SIMULATED",
+  },
+] as const;
+
+const HONESTY_LEGEND = [
+  { honesty: "sim", text: "ID issuer = SIMULATED" },
+  { honesty: "sim", text: "Swap = SIMULATED (mock)" },
+  { honesty: "sim", text: "Partner/bank = SIMULATED" },
+  { honesty: "live", text: "Selective disclosure = LIVE" },
+  { honesty: "live", text: "Capability denial = LIVE" },
+  { honesty: "live", text: "Onchain attestation = LIVE (Base Sepolia)" },
+  { honesty: "mixed", text: "x402 = LIVE header / SIMULATED result" },
 ] as const;
 
 const PLAN_IDLE = [
@@ -215,8 +280,14 @@ export default function Home() {
   const [message, setMessage] = useState(
     "Get my $500 reward into my Zenith account.",
   );
+  const [recipient, setRecipient] = useState("Zenith");
+  const [amount, setAmount] = useState("500");
+  const [country, setCountry] = useState("NG");
   const [running, setRunning] = useState(false);
   const [result, setResult] = useState<AgentResponse | null>(null);
+  const [recentAttestations, setRecentAttestations] = useState<
+    { subject: string; attestedAt: string; creditEligible: boolean }[]
+  >([]);
   const [delegation, setDelegation] = useState<Delegation | null>(null);
   const [rail, setRail] = useState<RailStatus | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -297,6 +368,9 @@ export default function Home() {
   const handoffOk = handoffOut?.status === "settlement_initiated";
 
   const beatDone = {
+    issuer: Boolean(
+      result?.toolCalls?.some((t) => t.toolName === "get_credentials"),
+    ),
     proof: Boolean(presentOut?.disclosed?.length),
     capability: capabilityBlocks.length >= 2,
     swap: Boolean(swapOut),
@@ -314,7 +388,7 @@ export default function Home() {
       const res = await fetch("/api/agent", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ message }),
+        body: JSON.stringify({ message, recipient, amount, country }),
       });
       const data = (await res.json()) as AgentResponse;
       if (!res.ok) {
@@ -323,19 +397,28 @@ export default function Home() {
       } else {
         setResult(data);
         requestAnimationFrame(() => {
-          resultsRef.current?.scrollIntoView({
+          document.getElementById("demo")?.scrollIntoView({
             behavior: "smooth",
             block: "start",
           });
         });
       }
       await refreshDelegation();
+      try {
+        const list = await fetch("/api/reputation");
+        const json = (await list.json()) as {
+          items?: { subject: string; attestedAt: string; creditEligible: boolean }[];
+        };
+        if (Array.isArray(json.items)) setRecentAttestations(json.items);
+      } catch {
+        /* list is optional */
+      }
     } catch (e) {
       setError(e instanceof Error ? e.message : String(e));
     } finally {
       setRunning(false);
     }
-  }, [message, running, refreshDelegation]);
+  }, [message, recipient, amount, country, running, refreshDelegation]);
 
   async function setAuthority(action: "grant" | "revoke") {
     if (authBusy) return;
@@ -364,6 +447,21 @@ export default function Home() {
   const openCount = disclosed.size;
   const doneCount = Object.values(beatDone).filter(Boolean).length;
   const explorer = rail?.explorerBase ?? "https://sepolia.basescan.org";
+  const swapTrackLive = Boolean(rail?.uniswapLive);
+  const swapBeatLive = hasRun
+    ? swapOut?.provider === "uniswap"
+    : swapTrackLive;
+  const honestyLegend = HONESTY_LEGEND.map((row) =>
+    row.text.startsWith("Swap")
+      ? {
+          ...row,
+          honesty: swapTrackLive ? ("live" as const) : row.honesty,
+          text: swapTrackLive
+            ? "Swap = LIVE (Base Sepolia Uniswap)"
+            : "Swap = SIMULATED (mock)",
+        }
+      : row,
+  );
   const authorityOn = Boolean(delegation?.granted);
   const authorityLocked = delegation !== null && !delegation.granted;
 
@@ -424,9 +522,18 @@ export default function Home() {
             Prove privately. Move funds on a boolean. Attest onchain, never PII.
           </p>
           <div className="pp-hero-ctas">
-            <a className="pp-btn-dark pp-btn-lg" href="#demo">
-              Open the cash-out demo
-            </a>
+            <button
+              type="button"
+              className="pp-btn-dark pp-btn-lg"
+              disabled={running || authorityLocked}
+              onClick={() => void run()}
+            >
+              {running
+                ? "Running pipeline"
+                : authorityLocked
+                  ? "Grant authority first"
+                  : "Open the cash-out demo"}
+            </button>
             <a className="pp-link-demo" href="#how">
               See the rail
             </a>
@@ -576,11 +683,45 @@ export default function Home() {
 
       <section className="pp-ask" id="demo" aria-label="Run the cash-out" data-reveal>
         <p className="pp-section-kicker">Live demo</p>
+        <ul className="pp-honesty" aria-label="Simulated versus live">
+          {honestyLegend.map((row) => (
+            <li key={row.text} data-honesty={row.honesty}>
+              {row.text}
+            </li>
+          ))}
+        </ul>
         <h2 className="pp-section-title">Cash-out wedge</h2>
         <p className="pp-ask-lead">
-          One request drives the orchestrator: proof, denials, swap, x402,
-          attestation, partner. Grant authority, then run.
+          Two agents split by capability. Private proof, public hash, revocable
+          authority. The bank stays off our books on purpose. Grant, then run.
         </p>
+        <div className="pp-fields">
+          <label>
+            Recipient
+            <input
+              value={recipient}
+              onChange={(e) => setRecipient(e.target.value)}
+              autoComplete="off"
+            />
+          </label>
+          <label>
+            Amount USD
+            <input
+              value={amount}
+              onChange={(e) => setAmount(e.target.value)}
+              inputMode="decimal"
+              autoComplete="off"
+            />
+          </label>
+          <label>
+            Country
+            <input
+              value={country}
+              onChange={(e) => setCountry(e.target.value)}
+              autoComplete="off"
+            />
+          </label>
+        </div>
         <textarea
           ref={inputRef}
           value={message}
@@ -635,6 +776,18 @@ export default function Home() {
             >
               <span className="pp-beat-dot" aria-hidden="true" />
               <span className="pp-beat-label">{beat.label}</span>
+              {(done || running) && (
+                <span
+                  className="pp-honesty-pill"
+                  data-honesty={
+                    beat.id === "swap" && swapBeatLive ? "live" : beat.honesty
+                  }
+                >
+                  {beat.id === "swap" && swapBeatLive
+                    ? beat.liveLabel
+                    : beat.honestyLabel}
+                </span>
+              )}
             </li>
           );
         })}
@@ -664,6 +817,14 @@ export default function Home() {
                 </a>
               </>
             )}
+            {reputation?.subject && (
+              <>
+                {" "}
+                <a href={`/lender?subject=${reputation.subject}`}>
+                  Open lender terminal
+                </a>
+              </>
+            )}
           </p>
         </div>
       )}
@@ -679,8 +840,9 @@ export default function Home() {
             </span>
           </div>
           <p className="pp-module-lead">
-            Only verified and country leave the device. Full name and ID never
-            enter the presentation.
+            {result?.disclosure
+              ? `${result.disclosure.rationale} (${result.disclosure.source})`
+              : "Only verified and country leave the device unless the proof-agent picks over_18. Full name and ID never enter the presentation."}
           </p>
           <ul className="pp-rows">
             {ALL_IDENTITY.map((claim, i) => {
@@ -798,6 +960,18 @@ export default function Home() {
               </strong>
             </div>
             <div>
+              <span>Subject</span>
+              <strong className="pp-mono">
+                {reputation?.subject ? (
+                  <a href={`/lender?subject=${reputation.subject}`}>
+                    {shortAddr(reputation.subject)}
+                  </a>
+                ) : (
+                  "Waiting for write"
+                )}
+              </strong>
+            </div>
+            <div>
               <span>PII onchain</span>
               <strong className={reputation ? "ok" : ""}>
                 {reputation ? "0 fields" : "Contract has no PII slots"}
@@ -818,6 +992,24 @@ export default function Home() {
               </div>
             )}
           </div>
+          {recentAttestations.length > 0 && (
+            <ul className="pp-rows" style={{ marginTop: 16 }}>
+              {recentAttestations.slice(-5).map((item) => (
+                <li key={item.subject} className="pp-row">
+                  <span className="pp-row-name pp-mono">
+                    {shortAddr(item.subject)}
+                  </span>
+                  <span className="pp-row-meta">
+                    {item.creditEligible ? (
+                      <a href={`/lender?subject=${item.subject}`}>Lender</a>
+                    ) : (
+                      "empty"
+                    )}
+                  </span>
+                </li>
+              ))}
+            </ul>
+          )}
         </section>
 
         <section className="pp-module pp-module-plan">
@@ -892,7 +1084,14 @@ export default function Home() {
                     <a href="#agents">Two agents</a>
                   </li>
                   <li>
-                    <a href="#demo">Watch the demo</a>
+                    <button
+                      type="button"
+                      className="pp-footer-run"
+                      disabled={running || authorityLocked}
+                      onClick={() => void run()}
+                    >
+                      Watch the demo
+                    </button>
                   </li>
                   <li>
                     <a href="#results">Live results</a>
@@ -928,6 +1127,9 @@ export default function Home() {
                     >
                       Reputation contract
                     </a>
+                  </li>
+                  <li>
+                    <a href="/lender">Lender terminal</a>
                   </li>
                   <li>
                     <a href="https://sepolia.basescan.org">Base Sepolia</a>

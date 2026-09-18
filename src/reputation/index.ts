@@ -20,6 +20,7 @@ export const reputationAbi = parseAbi([
   "function attest(bytes32 subject, bytes32 kind, bytes32 evidenceHash) returns (bytes32)",
   "function getAttestation(bytes32 subject) view returns (bytes32 kind, bytes32 evidenceHash, uint64 attestedAt, address attester)",
   "function subjectCount() view returns (uint256)",
+  "function subjects(uint256) view returns (bytes32)",
   "event Attested(bytes32 indexed subject, bytes32 indexed kind, bytes32 evidenceHash, address attester, uint64 attestedAt)",
 ]);
 
@@ -139,7 +140,21 @@ export async function writeAttestation(args: {
     functionName: "attest",
     args: [args.subject, args.kind, args.evidenceHash],
   });
-  await publicClient.waitForTransactionReceipt({ hash: txHash });
+  const receipt = await publicClient.waitForTransactionReceipt({ hash: txHash });
+  if (receipt.status !== "success") {
+    throw new Error(`attest reverted: ${txHash}`);
+  }
+
+  for (let i = 0; i < 8; i++) {
+    const rec = await publicClient.readContract({
+      address,
+      abi: reputationAbi,
+      functionName: "getAttestation",
+      args: [args.subject],
+    });
+    if (rec[2] > 0n) break;
+    await new Promise((r) => setTimeout(r, 750));
+  }
 
   return {
     txHash,
@@ -172,4 +187,39 @@ export async function readAttestation(subject: Hex): Promise<AttestationRead> {
     attester,
     piiFields: [],
   };
+}
+
+export type AttestationListItem = AttestationRead & { subject: Hex };
+
+export async function listAttestations(
+  limit = 20,
+): Promise<AttestationListItem[]> {
+  const address = loadContractAddress();
+  if (!address) throw new Error("REPUTATION_CONTRACT not set");
+  const publicClient = createPublicClient({
+    chain: baseSepolia,
+    transport: http(RPC),
+  });
+  const count = await publicClient.readContract({
+    address,
+    abi: reputationAbi,
+    functionName: "subjectCount",
+  });
+  const start = count > BigInt(limit) ? count - BigInt(limit) : 0n;
+  const items: AttestationListItem[] = [];
+  for (let i = start; i < count; i++) {
+    const subject = (await publicClient.readContract({
+      address,
+      abi: reputationAbi,
+      functionName: "subjects",
+      args: [i],
+    })) as Hex;
+    const rec = await readAttestation(subject);
+    items.push({ subject, ...rec });
+  }
+  return items;
+}
+
+export function isCreditEligible(read: AttestationRead): boolean {
+  return read.attestedAt > 0n;
 }

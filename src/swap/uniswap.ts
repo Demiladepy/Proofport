@@ -49,7 +49,10 @@ export class UniswapSwapProvider implements SwapProvider {
   name = "uniswap" as const;
 
   async swap(req: SwapRequest): Promise<SwapResult> {
-    const pk = process.env.DEMO_AGENT_PRIVATE_KEY ?? process.env.FAUCET_PRIVATE_KEY;
+    const pk =
+      process.env.EXECUTION_AGENT_PRIVATE_KEY ??
+      process.env.DEMO_AGENT_PRIVATE_KEY ??
+      process.env.FAUCET_PRIVATE_KEY;
     if (!pk) {
       throw new Error("No private key for Uniswap swap signer");
     }
@@ -118,6 +121,11 @@ export class UniswapSwapProvider implements SwapProvider {
       value:
         req.fromToken === "ETH" || req.fromToken === "WETH" ? amountIn : BigInt(0),
     });
+
+    const receipt = await publicClient.waitForTransactionReceipt({ hash: txHash });
+    if (receipt.status !== "success") {
+      throw new Error(`Uniswap swap reverted: ${txHash}`);
+    }
 
     return {
       provider: "uniswap",

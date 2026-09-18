@@ -1,4 +1,4 @@
-import { createHash } from "node:crypto";
+import { createHash, randomUUID } from "node:crypto";
 import {
   ensureDemoCredentials,
   present,
@@ -10,6 +10,7 @@ import { payComplianceCheck } from "@/payments/x402";
 import { requestPartnerHandoff } from "@/partner";
 import { CapabilityDeniedError, denyCapability } from "@/agents/capability";
 import { writeAttestation } from "@/reputation";
+import { selectDisclosureClaims } from "@/agents/proof-agent/select-claims";
 
 export type ToolCallTraceEntry = {
   toolName: string;
@@ -18,12 +19,29 @@ export type ToolCallTraceEntry = {
   output: unknown;
 };
 
+export type OrchestratorInput = {
+  message: string;
+  recipient?: string;
+  amount?: string;
+  country?: string;
+};
+
 export type OrchestratorResult = {
   mode: "deterministic" | "openai";
   text: string;
   toolCalls: ToolCallTraceEntry[];
   capabilityBlocks: ToolCallTraceEntry[];
   proofVerified: boolean;
+  disclosure?: {
+    claims: string[];
+    rationale: string;
+    source: "openai" | "fallback";
+  };
+  request?: {
+    recipient: string;
+    amount: string;
+    country: string;
+  };
   reputation?: {
     txHash?: string;
     explorerUrl?: string;
@@ -66,9 +84,16 @@ function captureDeny(
  * proof presents → capability demos → execution (boolean only) → swap → x402 → attestation → handoff
  */
 export async function runOrchestrator(
-  userMessage: string,
+  input: string | OrchestratorInput,
 ): Promise<OrchestratorResult> {
   assertDelegationActive();
+  const req = typeof input === "string" ? { message: input } : input;
+  const userMessage = req.message;
+  const recipient = req.recipient?.trim() || "Zenith";
+  const amount = req.amount?.trim() || "500";
+  const country = req.country?.trim() || "NG";
+  const requestMeta = { recipient, amount, country };
+
   const toolCalls: ToolCallTraceEntry[] = [];
   const capabilityBlocks: ToolCallTraceEntry[] = [];
 
@@ -80,8 +105,15 @@ export async function runOrchestrator(
     output: { held: { identity: true, provenance: true } },
   });
 
+  const disclosure = await selectDisclosureClaims({
+    message: userMessage,
+    recipient,
+    amount,
+    country,
+  });
+
   const held = await ensureDemoCredentials();
-  const presented = await present(held.identity, ["verified", "country"]);
+  const presented = await present(held.identity, disclosure.claims);
   const verified = await verify(presented.presentation, presented.withheld);
   const proofVerified =
     verified.signatureValid &&
@@ -91,7 +123,7 @@ export async function runOrchestrator(
   toolCalls.push({
     toolName: "present_proof",
     agent: "proof",
-    input: { claims: ["verified", "country"] },
+    input: { claims: disclosure.claims, source: disclosure.source },
     output: {
       disclosed: presented.disclosed,
       withheld: presented.withheld,
@@ -99,6 +131,8 @@ export async function runOrchestrator(
       presentation: presented.presentation,
       signatureValid: verified.signatureValid,
       verifiedOk: proofVerified,
+      rationale: disclosure.rationale,
+      source: disclosure.source,
     },
   });
 
@@ -117,15 +151,20 @@ export async function runOrchestrator(
   capabilityBlocks.push(denyRead);
   toolCalls.push(denyRead);
 
+  const swapAmount =
+    process.env.UNISWAP_LIVE === "true" &&
+    (process.env.SWAP_PROVIDER ?? "auto").toLowerCase() !== "mock"
+      ? "0.0001"
+      : "0.01";
   const swap = await executeSwap({
-    amountIn: "0.01",
+    amountIn: swapAmount,
     fromToken: "ETH",
     toToken: "USDC",
   });
   toolCalls.push({
     toolName: "swap",
     agent: "execution",
-    input: { amountIn: "0.01", fromToken: "ETH", toToken: "USDC" },
+    input: { amountIn: swapAmount, fromToken: "ETH", toToken: "USDC" },
     output: swap,
   });
 
@@ -139,13 +178,14 @@ export async function runOrchestrator(
     output: pay,
   });
 
+  const runId = randomUUID();
   const evidenceHash = (`0x` +
     createHash("sha256")
-      .update(`verified:${proofVerified}|v=1`)
+      .update(`verified:${proofVerified}|v=1|run:${runId}`)
       .digest("hex")) as `0x${string}`;
   const subject = (`0x` +
     createHash("sha256")
-      .update("proofport:subject:demo-user")
+      .update(`proofport:subject:${runId}:${recipient}`)
       .digest("hex")) as `0x${string}`;
   const kind = (`0x` +
     createHash("sha256")
@@ -199,11 +239,13 @@ export async function runOrchestrator(
       output: handoff,
     });
     return {
-      mode: "deterministic",
+      mode: disclosure.source === "openai" ? "openai" : "deterministic",
       text: `Proof failed for: ${userMessage}`,
       toolCalls,
       capabilityBlocks,
       proofVerified,
+      disclosure,
+      request: requestMeta,
       reputation,
       handoff,
     };
@@ -211,27 +253,31 @@ export async function runOrchestrator(
 
   const handoff = await requestPartnerHandoff({
     presentation: presented.presentation,
-    destinationBank: "Zenith",
-    amountUsd: "500",
+    destinationBank: recipient,
+    amountUsd: amount,
   });
   toolCalls.push({
     toolName: "request_handoff",
     agent: "execution",
-    input: { proofVerified: true, destinationBank: "Zenith" },
+    input: { proofVerified: true, destinationBank: recipient, amountUsd: amount },
     output: handoff,
   });
 
   return {
-    mode: "deterministic",
-    text: `Proofport cash-out for: ${userMessage}. Proof-agent disclosed verified+country only. Capability blocks: ${capabilityBlocks.length}. Handoff: ${handoff.status}. Reputation: ${reputation.txHash ? "onchain" : "pending"}.`,
+    mode: disclosure.source === "openai" ? "openai" : "deterministic",
+    text: `Proofport cash-out for: ${userMessage}. To ${recipient} (${amount} USD, ${country}). Disclosed ${disclosure.claims.join("+")} (${disclosure.source}). Capability blocks: ${capabilityBlocks.length}. Handoff: ${handoff.status}. Reputation: ${reputation.txHash ? "onchain" : "pending"}.`,
     toolCalls,
     capabilityBlocks,
     proofVerified,
+    disclosure,
+    request: requestMeta,
     reputation,
     handoff,
   };
 }
 
-export async function runAgent(userMessage: string): Promise<OrchestratorResult> {
+export async function runAgent(
+  userMessage: string | OrchestratorInput,
+): Promise<OrchestratorResult> {
   return runOrchestrator(userMessage);
 }

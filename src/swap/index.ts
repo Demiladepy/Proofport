@@ -15,7 +15,8 @@ export async function getSwapProvider(): Promise<SwapProvider> {
 
 export async function executeSwap(req: SwapRequest): Promise<SwapResult> {
   const mode = (process.env.SWAP_PROVIDER ?? "auto").toLowerCase();
-  if (mode === "mock") {
+  const liveFlag = process.env.UNISWAP_LIVE;
+  if (mode === "mock" || liveFlag === "false") {
     return new MockSwapProvider().swap(req);
   }
 

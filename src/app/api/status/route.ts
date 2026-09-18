@@ -47,6 +47,7 @@ export async function GET() {
     reputationContract,
     walletsNote,
     swapProvider: process.env.SWAP_PROVIDER ?? "auto",
+    uniswapLive: process.env.UNISWAP_LIVE === "true",
     x402Mode: "manual_header_retry",
     partner: "Mock licensed partner (no fiat)",
   });
