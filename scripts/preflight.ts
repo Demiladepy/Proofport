@@ -160,11 +160,30 @@ async function main() {
         "WARN",
       );
     } catch (err) {
+      // Next silently falls back to 3001+ when 3000 is taken, which looks
+      // identical to "app is down" from here. Check before blaming the user.
+      const elsewhere: string[] = [];
+      for (const port of [3000, 3001, 3002, 3100]) {
+        const candidate = `http://localhost:${port}`;
+        if (candidate === BASE.replace(/\/$/, "")) continue;
+        try {
+          await getJson(`${candidate}/api/health`, 2000);
+          elsewhere.push(candidate);
+        } catch {
+          /* not there */
+        }
+      }
       record(
         "app reachable",
         false,
-        `${err instanceof Error ? err.message : String(err)} — run: npm run dev`,
+        elsewhere.length
+          ? `${BASE} is down, but the app IS running at ${elsewhere.join(", ")}. ` +
+            `Either restart dev on the right port, or set PROOFPORT_BASE_URL=${elsewhere[0]} in .env.`
+          : `${err instanceof Error ? err.message : String(err)} — run: npm run dev`,
         "BLOCKER",
+      );
+      console.log(
+        "         (skipping page, delegation and story checks until the app is up)",
       );
       return;
     }
