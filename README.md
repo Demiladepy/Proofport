@@ -12,7 +12,16 @@ Built for Runtime (Bankr × Propaganda). **Not** a consumer cash-out app. We are
 is verifiable from any browser via Base Sepolia explorer links, with no setup and
 no trust in us. If the hosted demo is asleep, the receipts still stand.
 
-### Verify in 60 seconds, without running anything
+### The fastest check: open `/proof`
+
+The hosted app has a **proof wall** at [`/proof`](/proof) that verifies every
+claim below *from your own browser*, live against Base Sepolia. Base's public RPC
+sends `access-control-allow-origin: *`, so the requests leave your machine and go
+straight to the chain — our server is not in the loop and has nothing to fake. If
+a claim breaks, the page turns red. It also lists, on the same page, everything we
+deliberately do **not** claim.
+
+### Or verify by hand, without running anything
 
 | Track | Claim | Open this | Look for |
 | --- | --- | --- | --- |

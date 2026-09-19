@@ -40,6 +40,12 @@ When the proof verifies, the execution-agent does four things that are actually 
 
 **Tracks:** Uniswap — yes, with the SwapRouter02 fill above. Dynamic — yes: MPC `from` hash `0x85fd02dd…465d04`, plus nonce 0 [`0xd96b57f6…c8c9e1`](https://sepolia.basescan.org/tx/0xd96b57f60add3852d684676343a0528947f380b9fdea65d85661f1b473c8c9e1) and nonce 1 [`0x6f5f7b62…d3ddb2`](https://sepolia.basescan.org/tx/0x6f5f7b622ad07c9dd1efaade2120325859f0d95217484970ed30976888d3ddb2) from the same wallet.
 
+**Verify it yourself (no setup):** open `/proof` on the live URL. It re-checks
+every claim in this form against Base Sepolia from your own browser — Uniswap fill,
+Dynamic MPC sender, nonce-0 first signature, PII-free attestation calldata, contract
+bytecode. Our server is not in that request path. The same page lists what we
+deliberately do not claim.
+
 **Repo / video:** paste your public GitHub URL and the 90s mp4 after you record them. Shot-list: [`demos/proofport-one-take.md`](demos/proofport-one-take.md).
 
 ---

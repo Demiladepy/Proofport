@@ -1,57 +1,119 @@
-# Phase 9 demo recording (PRD v2)
+# 90-second shot-list
 
-Video recording is **manual**. This is the shot-list only. Do not mark Phase 10 done until the mp4 exists.
+Recording is manual. This is the script. Do not mark the submission done until the mp4 exists.
 
-Never say the word that means “LLM instruction.” Capability denials are a **hard throw in the tool registry**.
+Never say the word that means "LLM instruction." Capability denials are a **hard throw in the tool registry**.
 
-## 90s shot-list (keyed to LIVE features)
+---
 
-### 0–10s — Label every mock first
+## The rule this script follows
 
-Cream hero. Point at the honesty chips **before** you run anything. Say, out loud:
+**Lead with the receipt, not the apology.** A judge is skimming dozens of
+submissions and decides in about five seconds whether to keep watching. The old
+version of this script opened with ten seconds of "here is what is mocked" —
+honest, but it spends your only chance at attention on a disclaimer. Honesty is
+your differentiator, so it still goes in, but at second 10, framed as strength,
+not as a confession.
 
-> Identity issuer is demo — no government ID. Bank payout is not sent from this app. The compliance body is mock. What is live: private proof, agent bounds, Uniswap on Base Sepolia, an onchain hash with no PII, Grant and Revoke, and a Dynamic MPC wallet that signs its own transaction.
+---
 
-**Before recording, start the MPC signer** (`npm run mpc:serve`) and reload, or the authority chip will correctly read `local_viem` and the Dynamic claim will not be on screen.
+## Pre-flight (do all of this before you hit record)
 
-Do not click yet.
+```bash
+npm run mpc:serve    # leave running in its own terminal
+npm run dev
+```
 
-### 10–25s — Grant, then run
+- [ ] `npm run mpc:serve` is running. Without it the authority chip correctly reads `local_viem` and your Dynamic claim is not on screen.
+- [ ] Load `/` and confirm the chip reads **"Grant/Revoke governs Dynamic MPC wallet 0xA838…EA77, which signs on-chain."**
+- [ ] Load `/proof` once and confirm **5 of 5 claims verified**.
+- [ ] Authority is **granted** before you start (you revoke on camera later).
+- [ ] Browser at 100% zoom, no DevTools, no notifications, bookmarks bar hidden.
+- [ ] Two tabs ready: `/proof` and `/`.
 
-Click **Grant**. Click **Open the cash-out demo** (starts the pipeline; do not use nav Demo). Stay on the cream panel.
+---
 
-### 25–40s — Selective disclosure (LIVE)
+## 0–10s — Open on the proof, already moving
 
-On **Disclose**: verified (and country or over_18) are open. Name and ID stay locked. Say: private proof — only the claims the counterparty needs.
+Start on **`/proof`** with the rows mid-verification, flipping green one by one.
+Do not start on the hero. Say:
 
-### 40–55s — Capability denials (LIVE)
+> Everything I am about to claim is already on-chain — and your own browser is
+> checking it right now. Not my server. I am not in the request path.
 
-On **Bound**: two hard denials. Proof cannot swap. Execution cannot read name, ID, or country. Point at those two lines.
+Let one row land visibly on **VERIFIED** before you move. That is the hook.
 
-### 55–70s — Onchain attestation + lender (LIVE)
+## 10–20s — The thesis, and the honesty as a flex
 
-On **Attest**: reputation tx + subject. Open the explorer link if it is on screen. Click **Open lender terminal** (`/lender`). Credit eligible: yes. No PII. Say: public hash, not identity.
+Scroll to the black **"What we are deliberately not claiming"** block at the
+bottom of `/proof`. Say:
 
-If Swap shows Uniswap on Base Sepolia, that is the live AMM fill. Do not call a labeled fallback a Uniswap fill.
+> Two agents split by capability. Private proof, public hash, revocable authority.
+> And here is every mock in the build, labelled, in the same place as the proof.
+> No fiat moves. We are deliberately not a money transmitter.
 
-### 70–90s — Dynamic MPC + Grant / Revoke (LIVE)
+This is the line most submissions cannot say. Say it with confidence, not apology.
 
-On the trace, point at **dynamic_mpc_sign**. Open its explorer link: `from` is the
-Dynamic server wallet `0xA83850aB…`, not our key. Say: the delegated wallet signed
-that itself.
+## 20–32s — Grant, then run
 
-Back to the demo. Click **Revoke**. Try run — blocked before anything signs. Click
-**Grant**. Close on the footer line:
+Switch to **`/`**. Click **Grant**. Click **Open the cash-out demo** (this starts
+the pipeline — do not use the nav Demo link). Stay on the cream panel.
 
-> Two agents split by capability. Private proof, public hash, revocable authority. The bank stays off our books on purpose.
+> One click of Grant, and the agent has authority. Watch what it can and cannot do.
 
-Stop. Do not claim a bank transfer. Do not claim the Revoke gate is enforced
-on-chain — it is an app-level gate over an MPC wallet.
+## 32–46s — Selective disclosure (LIVE)
 
-## Spoken line (one take)
+On **Disclose**: `verified` and `country` open, name and ID stay locked.
 
-> Two agents split by capability. Private proof, public hash, revocable authority. The bank stays off our books on purpose.
+> The counterparty learns that this person is verified. It never learns who they
+> are. Name and ID are not hidden by the interface — they are cryptographically
+> absent from the presentation.
+
+## 46–58s — Capability denials (LIVE)
+
+On **Bound**: point at the two denial lines.
+
+> The proof-agent cannot move money. The execution-agent cannot read identity.
+> That is not a policy we asked a model to follow — it is a throw in the tool
+> registry. The call does not return.
+
+## 58–72s — Dynamic MPC + attestation (LIVE)
+
+On the trace, point at **`dynamic_mpc_sign`**, then open its explorer link.
+
+> That transaction was signed by a Dynamic MPC wallet. Look at the sender — it is
+> the server wallet, not my key. I could not have forged that field.
+
+Then **Attest**, and click through to **`/lender`**.
+
+> The lender reads one hash and returns credit eligible. No name, no ID, nothing
+> reversible.
+
+If Swap shows Uniswap on Base Sepolia, that is the live AMM fill. Do not call a
+labelled fallback a Uniswap fill.
+
+## 72–90s — Revoke, and close
+
+Back to the demo. Click **Revoke**. Try to run — it is blocked.
+
+> Authority is revocable, and revoking stops the machine before anything signs.
+
+Close on:
+
+> Two agents split by capability. Private proof, public hash, revocable
+> authority. The bank stays off our books on purpose.
+
+Stop recording. Do not claim a bank transfer. Do not claim the Revoke gate is
+enforced on-chain — it is an app-level gate over an MPC wallet.
+
+---
+
+## If you fluff a take
+
+Do not restart from zero. The only shots that must be continuous are 20–32
+(Grant → run) and 72–90 (Revoke → blocked). Everything else can be cut together.
+Re-record the single beat you lost.
 
 ## Console
 
-No DevTools errors during one-take. Phase 10 stays unchecked until the mp4 and forms exist.
+No DevTools errors during the take.
