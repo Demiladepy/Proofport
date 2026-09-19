@@ -538,6 +538,7 @@ export default function Home() {
           <a href="#how">How it works</a>
           <a href="#agents">Agents</a>
           <a href="#demo">Demo</a>
+          <a href="/proof">Proof wall</a>
         </div>
         <div className="pp-nav-actions">
           <span
@@ -756,6 +757,10 @@ export default function Home() {
             </li>
           ))}
         </ul>
+        <a className="pp-proof-cta" href="/proof">
+          Don&rsquo;t take our word for it &mdash; verify every claim on-chain
+          from your own browser &rarr;
+        </a>
         <h2 className="pp-section-title">Cash-out wedge</h2>
         <p className="pp-ask-lead">
           Two agents split by capability. Private proof, public hash, revocable
@@ -1196,6 +1201,9 @@ export default function Home() {
                   </li>
                   <li>
                     <a href="/lender">Lender terminal</a>
+                  </li>
+                  <li>
+                    <a href="/proof">Proof wall</a>
                   </li>
                   <li>
                     <a href="https://sepolia.basescan.org">Base Sepolia</a>
