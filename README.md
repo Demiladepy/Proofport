@@ -2,6 +2,33 @@
 
 > Two agents split by capability. Private proof, public hash, revocable authority. The bank stays off our books on purpose.
 
+## Ada needs credit. She does not need to hand over her identity.
+
+Ada is a freelancer in Lagos with three years of steady client payments behind
+her. To get working capital she is asked, as everyone is, to upload her full
+name, her ID number and her date of birth to a company she has no particular
+reason to trust — and then to hope that file is never breached, sold, or handed
+to someone who asks for it. She has no way to prove she is a real, verified,
+adult human **without** also proving exactly *which* human she is.
+
+Verification and identification got welded together. There is no technical
+reason for that, and the cost of it lands on people like Ada.
+
+Proofport takes them apart. Her proof-agent discloses only what the counterparty
+actually needs — that she is `verified`, and at most her `country` and whether she
+is `over_18`. Her full name and ID number are not in that set and cannot be added
+to it. They are not hidden by our interface; they are **cryptographically absent
+from the presentation**. A second agent acts on that proof and is structurally
+incapable of reading her identity — the call throws in the tool registry, not in a
+prompt we hope a model obeys. What lands on-chain is a hash a lender can check and
+nobody can reverse.
+
+The lender gets a signal it can trust. Ada keeps her name. And neither of them
+has to take our word for any of it — [`/proof`](/proof) re-verifies the whole
+chain from your own browser.
+
+---
+
 Onchain credit-and-reputation rail for agentic finance. A proof-agent discloses only the claims a counterparty needs. An execution-agent moves value on a verifier boolean and never reads identity. Successful proofs become a PII-free attestation on Base Sepolia.
 
 Built for Runtime (Bankr × Propaganda). **Not** a consumer cash-out app. We are deliberately not a money transmitter.
