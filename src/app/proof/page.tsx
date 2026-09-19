@@ -41,19 +41,54 @@ type Claim = {
   run: () => Promise<Check[]>;
 };
 
-async function rpc<T>(method: string, params: unknown[]): Promise<T> {
-  const res = await fetch(RPC, {
-    method: "POST",
-    headers: { "content-type": "application/json" },
-    body: JSON.stringify({ jsonrpc: "2.0", id: 1, method, params }),
-  });
-  if (!res.ok) throw new Error(`RPC ${res.status}`);
-  const json = (await res.json()) as { result?: T; error?: { message: string } };
-  if (json.error) throw new Error(json.error.message);
-  if (json.result === undefined || json.result === null) {
-    throw new Error(`${method} returned nothing`);
+/**
+ * Base Sepolia's public endpoint is free and correspondingly variable — calls
+ * have been measured between 0.7s and 4.4s. A single unlucky request must not
+ * paint a true claim red, so each call gets three attempts with backoff before
+ * we admit defeat.
+ */
+async function rpc<T>(
+  method: string,
+  params: unknown[],
+  attempts = 3,
+): Promise<T> {
+  let lastError: unknown;
+  for (let attempt = 0; attempt < attempts; attempt += 1) {
+    if (attempt > 0) {
+      await new Promise((r) => setTimeout(r, 600 * attempt));
+    }
+    try {
+      const res = await fetch(RPC, {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ jsonrpc: "2.0", id: 1, method, params }),
+        signal: AbortSignal.timeout(12_000),
+      });
+      if (!res.ok) throw new Error(`RPC ${res.status}`);
+      const json = (await res.json()) as {
+        result?: T;
+        error?: { message: string };
+      };
+      if (json.error) throw new Error(json.error.message);
+      if (json.result === undefined || json.result === null) {
+        throw new Error(`${method} returned nothing`);
+      }
+      return json.result;
+    } catch (err) {
+      lastError = err;
+    }
   }
-  return json.result;
+  throw lastError instanceof Error
+    ? lastError
+    : new Error(`${method} failed after ${attempts} attempts`);
+}
+
+/** Fetch a transaction and its receipt together rather than end to end. */
+async function txAndReceipt(hash: string): Promise<[Tx, Receipt]> {
+  return Promise.all([
+    rpc<Tx>("eth_getTransactionByHash", [hash]),
+    rpc<Receipt>("eth_getTransactionReceipt", [hash]),
+  ]);
 }
 
 type Tx = { from: string; to: string; nonce: string; input: string };
@@ -107,10 +142,7 @@ const CLAIMS: Claim[] = [
     why: "The signature came from threshold MPC, not from a private key we hold. The sender field is the proof — we could not forge it.",
     txHash: TX_MPC_RUN,
     run: async () => {
-      const tx = await rpc<Tx>("eth_getTransactionByHash", [TX_MPC_RUN]);
-      const receipt = await rpc<Receipt>("eth_getTransactionReceipt", [
-        TX_MPC_RUN,
-      ]);
+      const [tx, receipt] = await txAndReceipt(TX_MPC_RUN);
       return [
         {
           label: "Sender is the Dynamic MPC wallet",
@@ -140,10 +172,7 @@ const CLAIMS: Claim[] = [
     why: "Nonce zero means this address had never transacted before. The wallet was minted through Dynamic and its very first act was an MPC signature.",
     txHash: TX_MPC_FIRST,
     run: async () => {
-      const tx = await rpc<Tx>("eth_getTransactionByHash", [TX_MPC_FIRST]);
-      const receipt = await rpc<Receipt>("eth_getTransactionReceipt", [
-        TX_MPC_FIRST,
-      ]);
+      const [tx, receipt] = await txAndReceipt(TX_MPC_FIRST);
       return [
         {
           label: "Nonce is zero (first tx from this address)",
@@ -173,8 +202,7 @@ const CLAIMS: Claim[] = [
     why: "Not the Trading API, not a mock. The execution-agent routed ETH to USDC through the canonical SwapRouter02 on Base Sepolia.",
     txHash: TX_SWAP,
     run: async () => {
-      const tx = await rpc<Tx>("eth_getTransactionByHash", [TX_SWAP]);
-      const receipt = await rpc<Receipt>("eth_getTransactionReceipt", [TX_SWAP]);
+      const [tx, receipt] = await txAndReceipt(TX_SWAP);
       return [
         {
           label: "Recipient is Uniswap SwapRouter02",
@@ -204,10 +232,7 @@ const CLAIMS: Claim[] = [
     why: "We pull the raw calldata into your browser and inspect it byte by byte. Text stuffed into a 32-byte slot leaves a long tail of zero padding — “Ada Lovelace” would be 12 bytes of name and 20 bytes of zeros. These words have none of that signature.",
     txHash: TX_ATTEST,
     run: async () => {
-      const tx = await rpc<Tx>("eth_getTransactionByHash", [TX_ATTEST]);
-      const receipt = await rpc<Receipt>("eth_getTransactionReceipt", [
-        TX_ATTEST,
-      ]);
+      const [tx, receipt] = await txAndReceipt(TX_ATTEST);
       const payload = tx.input.slice(10); // strip 4-byte selector
       const words: number[][] = [];
       for (let i = 0; i + 64 <= payload.length; i += 64) {

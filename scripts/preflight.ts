@@ -40,17 +40,40 @@ function record(name: string, ok: boolean, detail: string, severity: Severity) {
   console.log(`  [${mark}] ${name}\n         ${detail}`);
 }
 
-async function rpcCall<T>(method: string, params: unknown[]): Promise<T> {
-  const res = await fetch(RPC, {
-    method: "POST",
-    headers: { "content-type": "application/json" },
-    body: JSON.stringify({ jsonrpc: "2.0", id: 1, method, params }),
-    signal: AbortSignal.timeout(15_000),
-  });
-  const json = (await res.json()) as { result?: T; error?: { message: string } };
-  if (json.error) throw new Error(json.error.message);
-  if (json.result == null) throw new Error(`${method}: empty result`);
-  return json.result;
+/**
+ * The public Base Sepolia endpoint varies between roughly 0.7s and 4.4s. One
+ * slow call used to abort the whole on-chain section and report a false
+ * blocker, so retry before believing it.
+ */
+async function rpcCall<T>(
+  method: string,
+  params: unknown[],
+  attempts = 3,
+): Promise<T> {
+  let lastError: unknown;
+  for (let attempt = 0; attempt < attempts; attempt += 1) {
+    if (attempt > 0) await new Promise((r) => setTimeout(r, 700 * attempt));
+    try {
+      const res = await fetch(RPC, {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ jsonrpc: "2.0", id: 1, method, params }),
+        signal: AbortSignal.timeout(15_000),
+      });
+      const json = (await res.json()) as {
+        result?: T;
+        error?: { message: string };
+      };
+      if (json.error) throw new Error(json.error.message);
+      if (json.result == null) throw new Error(`${method}: empty result`);
+      return json.result;
+    } catch (err) {
+      lastError = err;
+    }
+  }
+  throw lastError instanceof Error
+    ? lastError
+    : new Error(`${method} failed after ${attempts} attempts`);
 }
 
 async function getJson<T>(url: string, ms = 8000): Promise<T> {
