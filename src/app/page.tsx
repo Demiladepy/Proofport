@@ -412,6 +412,20 @@ export default function Home() {
     | { paidVia?: string; message?: string }
     | undefined;
 
+  const mpcOut = result?.toolCalls?.find(
+    (t) => t.toolName === "dynamic_mpc_sign",
+  )?.output as
+    | {
+        signer?: string;
+        live?: boolean;
+        from?: string;
+        txHash?: string;
+        explorerUrl?: string;
+        note?: string;
+        lastMpcTx?: string;
+      }
+    | undefined;
+
   const handoffOut = result?.toolCalls?.find((t) => t.toolName === "request_handoff")
     ?.output as
     | { status?: string; note?: string; reference?: string }
@@ -973,6 +987,77 @@ export default function Home() {
           <p className="pp-exposure">
             <strong>Full ID never left your device.</strong>
           </p>
+        </section>
+
+        <section className="pp-module pp-module-mpc">
+          <div className="pp-module-head">
+            <h2 className="pp-module-title">Delegated authority</h2>
+            <span className="pp-chip">
+              {mpcOut?.live
+                ? "Dynamic MPC"
+                : rail?.dynamic?.signer === "dynamic_mpc"
+                  ? "Signer live"
+                  : "Local key"}
+            </span>
+          </div>
+          <p className="pp-module-lead">
+            {mpcOut?.live
+              ? "The Dynamic server wallet signed this run itself. The sender below is the MPC wallet, not our local key."
+              : mpcOut?.note
+                ? mpcOut.note
+                : "Grant gives the agent authority over a Dynamic MPC server wallet. Run the demo to make it sign."}
+          </p>
+          <div className="pp-kv">
+            <div>
+              <span>Signer</span>
+              <strong className={mpcOut?.live ? "ok" : ""}>
+                {mpcOut?.live
+                  ? "Dynamic MPC (threshold)"
+                  : rail?.dynamic?.signer === "dynamic_mpc"
+                    ? "Dynamic MPC ready"
+                    : "local viem"}
+              </strong>
+            </div>
+            <div>
+              <span>Sender onchain</span>
+              <strong className="pp-mono">
+                {mpcOut?.from ?? rail?.dynamic?.mpcAddress
+                  ? shortAddr(
+                      (mpcOut?.from ?? rail?.dynamic?.mpcAddress) as string,
+                    )
+                  : "Waiting for run"}
+              </strong>
+            </div>
+            <div>
+              <span>MPC signature</span>
+              <strong>
+                {mpcOut?.explorerUrl ? (
+                  <a href={mpcOut.explorerUrl} target="_blank" rel="noreferrer">
+                    {mpcOut.txHash ? `${mpcOut.txHash.slice(0, 10)}…` : "Basescan"}
+                  </a>
+                ) : rail?.dynamic?.mpcProof?.explorerUrl ? (
+                  <a
+                    href={rail.dynamic.mpcProof.explorerUrl}
+                    target="_blank"
+                    rel="noreferrer"
+                  >
+                    {`${rail.dynamic.mpcProof.txHash.slice(0, 10)}…`}
+                  </a>
+                ) : (
+                  "Waiting for run"
+                )}
+              </strong>
+            </div>
+            <div>
+              <span>Our local key</span>
+              <strong className={mpcOut?.live ? "ok" : ""}>
+                {mpcOut?.live ? "Not used for this tx" : "Signs swap + attestation"}
+              </strong>
+            </div>
+          </div>
+          <a className="pp-proof-cta" href="/proof">
+            Verify this sender on-chain yourself &rarr;
+          </a>
         </section>
 
         <section className="pp-module pp-module-dark">

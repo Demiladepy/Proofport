@@ -156,6 +156,28 @@ async function signAndSend({ to, value, data }) {
   return proof;
 }
 
+/**
+ * Readiness must not depend on a live RPC round-trip. The balance is advisory,
+ * so it is cached and time-boxed; a slow chain call used to push /health past
+ * the caller's timeout and make a healthy signer look offline.
+ */
+let balanceCache = { eth: "unknown", at: 0 };
+
+async function cachedBalance(address) {
+  if (Date.now() - balanceCache.at < 15_000) return balanceCache.eth;
+  try {
+    const wei = await withTimeout(
+      publicClient.getBalance({ address }),
+      1500,
+      "getBalance",
+    );
+    balanceCache = { eth: (Number(wei) / 1e18).toString(), at: Date.now() };
+  } catch {
+    balanceCache = { eth: balanceCache.eth, at: Date.now() };
+  }
+  return balanceCache.eth;
+}
+
 async function health() {
   const store = loadStore();
   if (!store) {
@@ -166,13 +188,7 @@ async function health() {
       note: "Signer is up but .data/wallet.json holds no Dynamic wallet.",
     };
   }
-  let eth = "unknown";
-  try {
-    const wei = await publicClient.getBalance({ address: store.accountAddress });
-    eth = (Number(wei) / 1e18).toString();
-  } catch {
-    /* balance is advisory */
-  }
+  const eth = await cachedBalance(store.accountAddress);
   return {
     ok: true,
     ready: true,

@@ -2044,3 +2044,16 @@ body > * { position: relative; z-index: 1; }
   color: var(--color-ink-black);
   font-weight: 500;
 }
+
+/* Delegated authority module — the Dynamic MPC evidence, in the product. */
+.pp-module-mpc {
+  border: 1px solid var(--color-stone-border);
+  border-left: 3px solid var(--color-plum-violet);
+}
+.pp-module-mpc .pp-kv strong.ok {
+  color: var(--color-grass-green);
+}
+.pp-module-mpc .pp-proof-cta {
+  margin-top: var(--spacing-16);
+  margin-bottom: 0;
+}

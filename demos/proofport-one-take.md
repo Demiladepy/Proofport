@@ -57,6 +57,13 @@ All blockers clear. You are safe to record.
 If it reports `signer=local_viem`, terminal 1 is not up — or the app started
 before the signer did. Restart the signer, then reload the page.
 
+### Clear the form before you record
+
+The Recipient / message fields keep whatever you last typed, and the model
+repeats it back in the disclosure rationale. **Do not leave a real bank name in
+there** — it puts a real institution on screen next to a payout leg that is a
+labelled mock. Use a person or a generic label.
+
 ### Then the manual bits it cannot check
 
 - [ ] Browser at 100% zoom, no DevTools, no notifications, bookmarks bar hidden.
@@ -115,10 +122,28 @@ On **Bound**: point at the two denial lines.
 
 ## 58–72s — Dynamic MPC + attestation (LIVE)
 
-On the trace, point at **`dynamic_mpc_sign`**, then open its explorer link.
+Scroll to the **Delegated authority** card (violet left edge, sits between
+Selective disclosure and Capability block). It only fills in *after* a run.
 
-> That transaction was signed by a Dynamic MPC wallet. Look at the sender — it is
-> the server wallet, not my key. I could not have forged that field.
+It reads:
+
+```
+SIGNER            Dynamic MPC (threshold)
+SENDER ONCHAIN    0xA838...EA77
+MPC SIGNATURE     0x........          <- click this
+OUR LOCAL KEY     Not used for this tx
+```
+
+Say:
+
+> That transaction was signed by a Dynamic MPC wallet. The sender is the server
+> wallet, not my key — and my key was not used for it at all.
+
+Click **MPC SIGNATURE**. Basescan opens. **Point at the `From` field**, nothing
+else — ignore the method name at the top, that is just the function being called.
+`From` is the whole claim.
+
+> I could not have forged that field.
 
 Then **Attest**, and click through to **`/lender`**.
 

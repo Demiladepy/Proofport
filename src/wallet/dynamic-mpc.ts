@@ -50,8 +50,13 @@ export function getMpcProof(): MpcProof | null {
 }
 
 /** Is the Linux sidecar reachable and holding a Dynamic wallet right now? */
+/**
+ * 1200ms was too tight: /health round-trips to WSL and had been measured at
+ * ~680ms, so ordinary jitter made a live signer look offline and the run
+ * silently fell back to the local key. Give it real headroom.
+ */
 export async function probeMpcSigner(
-  timeoutMs = 1200,
+  timeoutMs = 6000,
 ): Promise<MpcHealth | null> {
   try {
     const res = await fetch(`${SIGNER_URL}/health`, {
