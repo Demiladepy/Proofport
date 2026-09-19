@@ -17,19 +17,53 @@ not as a confession.
 
 ---
 
-## Pre-flight (do all of this before you hit record)
+## Pre-flight
+
+### Three terminals, in this order
+
+**Terminal 1 — the MPC signer.** Leave it running for the whole session. Without
+it the authority chip correctly reads `local_viem` and your Dynamic claim is not
+on screen at all.
 
 ```bash
-npm run mpc:serve    # leave running in its own terminal
+npm run mpc:serve
+```
+
+Wait until it prints `dynamic-mpc signer on 127.0.0.1:18787`.
+
+**Terminal 2 — the app.**
+
+```bash
 npm run dev
 ```
 
-- [ ] `npm run mpc:serve` is running. Without it the authority chip correctly reads `local_viem` and your Dynamic claim is not on screen.
-- [ ] Load `/` and confirm the chip reads **"Grant/Revoke governs Dynamic MPC wallet 0xA838…EA77, which signs on-chain."**
-- [ ] Load `/proof` once and confirm **5 of 5 claims verified**.
-- [ ] Authority is **granted** before you start (you revoke on camera later).
+**Terminal 3 — the audit.** This is the gate. Do not skip it.
+
+```bash
+npm run preflight
+```
+
+It checks 22 things: env vars, the signer, all three pages, whether authority is
+granted, all five on-chain claims, gas in both wallets, and whether the demo
+identity still matches the README story. It separates **BLOCKERS** (do not
+record) from **WARNINGS** (cosmetic). It exits non-zero on any blocker.
+
+Record only when it prints:
+
+```
+All blockers clear. You are safe to record.
+```
+
+If it reports `signer=local_viem`, terminal 1 is not up — or the app started
+before the signer did. Restart the signer, then reload the page.
+
+### Then the manual bits it cannot check
+
 - [ ] Browser at 100% zoom, no DevTools, no notifications, bookmarks bar hidden.
 - [ ] Two tabs ready: `/proof` and `/`.
+- [ ] Screen recorder set to the browser window only, not the whole desktop.
+- [ ] `.env` is not open in any visible editor tab. It has private keys in it.
+- [ ] Reload `/proof` immediately before the take so the rows animate live.
 
 ---
 
@@ -48,9 +82,11 @@ Let one row land visibly on **VERIFIED** before you move. That is the hook.
 Scroll to the black **"What we are deliberately not claiming"** block at the
 bottom of `/proof`. Say:
 
-> Two agents split by capability. Private proof, public hash, revocable authority.
-> And here is every mock in the build, labelled, in the same place as the proof.
-> No fiat moves. We are deliberately not a money transmitter.
+> I built this because of my own bank. To confirm one fact about me, they wanted
+> every document I had, stored forever. So: Bola is a freelancer in Lagos. She can
+> prove she is verified without proving which human she is. And here is every mock
+> in the build, labelled, in the same place as the proof. No fiat moves — we are
+> deliberately not a money transmitter.
 
 This is the line most submissions cannot say. Say it with confidence, not apology.
 

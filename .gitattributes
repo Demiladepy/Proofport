@@ -1,0 +1,15 @@
+# Shell scripts run under WSL/Linux. CRLF breaks them in a way that looks like a
+# shell bug: `set -euo pipefail\r` fails with "pipefail: invalid option name".
+# Force LF regardless of the checkout platform or core.autocrlf.
+*.sh text eol=lf
+
+# The MPC signer scripts are executed by node inside WSL.
+scripts/*.mjs text eol=lf
+
+# Keep normal text normalised, leave binaries alone.
+* text=auto
+*.png binary
+*.jpg binary
+*.ico binary
+*.woff binary
+*.woff2 binary

@@ -579,6 +579,11 @@ export default function Home() {
           <p className="pp-eyebrow">Credit and reputation rail</p>
           <h1 className="pp-brand">Proofport</h1>
           <p className="pp-tagline">
+            Bola can prove she is verified
+            <br />
+            without proving <em>who</em> she is.
+          </p>
+          <p className="pp-tagline-sub">
             Prove privately. Move funds on a boolean. Attest onchain, never PII.
           </p>
           <div className="pp-hero-ctas">

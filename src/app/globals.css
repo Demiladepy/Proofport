@@ -1937,3 +1937,110 @@ a.pp-btn-dark:hover {
   padding-bottom: 2px;
 }
 .pp-proof-cta:hover { color: var(--color-grass-green); }
+
+.pp-tagline em {
+  font-style: normal;
+  border-bottom: 3px solid var(--color-grass-green);
+  padding-bottom: 1px;
+}
+.pp-tagline-sub {
+  font-size: var(--text-caption);
+  line-height: var(--leading-caption);
+  color: var(--color-muted-gray);
+  margin: var(--spacing-12) 0 0;
+  max-width: 46ch;
+  margin-inline: auto;
+}
+
+/* ---------------------------------------------------------------
+   Ambience — warmth and depth on the flat cream canvas.
+   Everything here is decorative and sits behind content.
+   --------------------------------------------------------------- */
+
+body {
+  position: relative;
+  background-color: var(--color-cream-canvas);
+  background-image:
+    radial-gradient(
+      900px 520px at 12% -6%,
+      rgba(100, 198, 255, 0.16),
+      transparent 62%
+    ),
+    radial-gradient(
+      760px 460px at 92% 2%,
+      rgba(255, 205, 108, 0.2),
+      transparent 60%
+    ),
+    radial-gradient(
+      680px 520px at 50% 108%,
+      rgba(0, 201, 120, 0.11),
+      transparent 64%
+    );
+  background-attachment: fixed;
+}
+
+/* Fine grain so the large flat fields read as paper, not as empty canvas. */
+body::before {
+  content: "";
+  position: fixed;
+  inset: 0;
+  z-index: 0;
+  pointer-events: none;
+  opacity: 0.032;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='3'/%3E%3C/filter%3E%3Crect width='160' height='160' filter='url(%23n)'/%3E%3C/svg%3E");
+}
+
+body > * { position: relative; z-index: 1; }
+
+/* Desynchronise the floaters so they drift instead of pulsing in lockstep. */
+.pp-hero-art .pp-mascot:nth-of-type(1) { animation-duration: 6.4s; animation-delay: -1.2s; }
+.pp-hero-art .pp-mascot:nth-of-type(2) { animation-duration: 5.2s; animation-delay: -3.1s; }
+.pp-hero-art .pp-confetti:nth-of-type(3) { animation-duration: 4.4s; animation-delay: -0.6s; }
+.pp-hero-art .pp-confetti:nth-of-type(4) { animation-duration: 5.8s; animation-delay: -2.4s; }
+.pp-hero-art .pp-confetti:nth-of-type(5) { animation-duration: 3.9s; animation-delay: -1.7s; }
+
+/* Lift the cards off the page a little. */
+.pp-module {
+  box-shadow:
+    0 1px 2px rgba(18, 18, 18, 0.04),
+    0 8px 24px -12px rgba(18, 18, 18, 0.1);
+  transition: box-shadow 260ms var(--ease-in-out), transform 260ms var(--ease-in-out);
+}
+.pp-module:hover {
+  box-shadow:
+    0 1px 2px rgba(18, 18, 18, 0.05),
+    0 16px 38px -14px rgba(18, 18, 18, 0.16);
+  transform: translateY(-2px);
+}
+
+.pw-claim {
+  box-shadow:
+    0 1px 2px rgba(18, 18, 18, 0.04),
+    0 8px 22px -14px rgba(18, 18, 18, 0.12);
+}
+.pw-claim[data-phase="pass"] {
+  box-shadow:
+    0 1px 2px rgba(0, 201, 120, 0.1),
+    0 10px 28px -16px rgba(0, 201, 120, 0.34);
+}
+
+/* The hero headline is the thing to read first. */
+.pp-tagline {
+  position: relative;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  body { background-attachment: scroll; }
+  .pp-module { transition: none; }
+  .pp-module:hover { transform: none; }
+}
+
+/* The human line is the hook — let it carry more weight than body copy. */
+.pp-tagline {
+  max-width: 24ch;
+  font-size: var(--text-subheading);
+  line-height: 1.32;
+  letter-spacing: var(--tracking-subheading);
+  color: var(--color-ink-black);
+  font-weight: 500;
+}

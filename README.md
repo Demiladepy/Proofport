@@ -2,9 +2,9 @@
 
 > Two agents split by capability. Private proof, public hash, revocable authority. The bank stays off our books on purpose.
 
-## Ada needs credit. She does not need to hand over her identity.
+## Bola needs credit. She does not need to hand over her identity.
 
-Ada is a freelancer in Lagos with three years of steady client payments behind
+Bola is a freelancer in Lagos with three years of steady client payments behind
 her. To get working capital she is asked, as everyone is, to upload her full
 name, her ID number and her date of birth to a company she has no particular
 reason to trust — and then to hope that file is never breached, sold, or handed
@@ -12,7 +12,7 @@ to someone who asks for it. She has no way to prove she is a real, verified,
 adult human **without** also proving exactly *which* human she is.
 
 Verification and identification got welded together. There is no technical
-reason for that, and the cost of it lands on people like Ada.
+reason for that, and the cost of it lands on people like Bola.
 
 Proofport takes them apart. Her proof-agent discloses only what the counterparty
 actually needs — that she is `verified`, and at most her `country` and whether she
@@ -23,9 +23,16 @@ incapable of reading her identity — the call throws in the tool registry, not 
 prompt we hope a model obeys. What lands on-chain is a hash a lender can check and
 nobody can reverse.
 
-The lender gets a signal it can trust. Ada keeps her name. And neither of them
+The lender gets a signal it can trust. Bola keeps her name. And neither of them
 has to take our word for any of it — [`/proof`](/proof) re-verifies the whole
 chain from your own browser.
+
+> **Why this build exists.** This started with my own bank. Opening the account
+> meant handing over every identifying document I had, to be stored indefinitely,
+> so that a form could confirm one bit of information about me. I am not naming
+> the bank, because they did nothing unusual — that *is* the industry default, and
+> that is the point. Proofport is what the same interaction looks like if you only
+> answer the question that was actually asked.
 
 ---
 

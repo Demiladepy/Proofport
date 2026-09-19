@@ -105,7 +105,7 @@ const DEFAULT_IDENTITY: IdentityClaims = {
   verified: true,
   country: "NG",
   over_18: true,
-  full_name: "Ada Okonkwo",
+  full_name: "Bola Adeyemi",
   id_number: "NIN-12345678901",
 };
 

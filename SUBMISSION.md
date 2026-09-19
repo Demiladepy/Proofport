@@ -14,7 +14,13 @@ Paste hashes from receipts we re-checked on Base Sepolia RPC (`status=success`).
 
 **What we built (exact answer):**
 
-Proofport is a constrained-agent credit-and-reputation rail, not a consumer cash-out app and not a money transmitter.
+Bola is a freelancer in Lagos. To get working capital she is asked to hand over her
+full name, ID number and date of birth to a company she has no reason to trust — just
+to confirm that she is a verified adult. Verification and identification got welded
+together, and the cost of that lands on her.
+
+Proofport takes them apart. It is a constrained-agent credit-and-reputation rail, not a
+consumer cash-out app and not a money transmitter.
 
 A proof-agent issues an SD-JWT VC and discloses only allowlisted claims (`verified`, plus `country` or `over_18`). Name and ID stay withheld in the presentation. An execution-agent never reads those fields. Each agent is blocked from the other’s tools by a hard throw in the tool registry (`denyCapability`).
 

@@ -24,7 +24,8 @@
     "smoke:delegation": "tsx tests/smoke/delegation.ts",
     "smoke:agent": "tsx tests/smoke/agent.ts",
     "mpc:sign": "wsl -e bash scripts/run-mpc-sign.sh",
-    "mpc:serve": "wsl -e bash scripts/start-dynamic-wsl.sh"
+    "mpc:serve": "wsl -e bash scripts/start-dynamic-wsl.sh",
+    "preflight": "tsx scripts/preflight.ts"
   },
   "dependencies": {
     "@ai-sdk/openai": "^4.0.67",
