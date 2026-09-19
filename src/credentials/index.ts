@@ -35,7 +35,11 @@ function ensureDir(path: string) {
   mkdirSync(dirname(path), { recursive: true });
 }
 
+/** Survives a read-only filesystem (Vercel): keys stay in memory for the process. */
+let memoryIssuerKeys: IssuerKeypair | null = null;
+
 export function loadOrCreateIssuerKeys(): IssuerKeypair {
+  if (memoryIssuerKeys) return memoryIssuerKeys;
   if (existsSync(KEY_PATH)) {
     return JSON.parse(readFileSync(KEY_PATH, "utf8")) as IssuerKeypair;
   }
@@ -44,8 +48,14 @@ export function loadOrCreateIssuerKeys(): IssuerKeypair {
     publicKeyPem: publicKey.export({ type: "spki", format: "pem" }).toString(),
     privateKeyPem: privateKey.export({ type: "pkcs8", format: "pem" }).toString(),
   };
-  ensureDir(KEY_PATH);
-  writeFileSync(KEY_PATH, JSON.stringify(pair, null, 2));
+  memoryIssuerKeys = pair;
+  try {
+    ensureDir(KEY_PATH);
+    writeFileSync(KEY_PATH, JSON.stringify(pair, null, 2));
+  } catch {
+    // Vercel and other read-only filesystems: the demo issuer is ephemeral.
+    // Presentations still verify within a process; nothing on-chain depends on it.
+  }
   return pair;
 }
 

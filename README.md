@@ -6,6 +6,57 @@ Onchain credit-and-reputation rail for agentic finance. A proof-agent discloses 
 
 Built for Runtime (Bankr × Propaganda). **Not** a consumer cash-out app. We are deliberately not a money transmitter.
 
+## For judges — read this first
+
+**The chain is the proof. The hosted URL is the walkthrough.** Every claim below
+is verifiable from any browser via Base Sepolia explorer links, with no setup and
+no trust in us. If the hosted demo is asleep, the receipts still stand.
+
+### Verify in 60 seconds, without running anything
+
+| Track | Claim | Open this | Look for |
+| --- | --- | --- | --- |
+| **Uniswap** | Real V3 fill via SwapRouter02 | [`0xd4ddc55d…1346d3`](https://sepolia.basescan.org/tx/0xd4ddc55d5a6db1efe065fb6151712da244eb3a3aaa5908558b6a50e8721346d3) | `to` = SwapRouter02 `0x94cC0AaC…`; pool sent `0.395801` USDC |
+| **Dynamic** | An MPC server wallet signed its own tx | [`0x85fd02dd…465d04`](https://sepolia.basescan.org/tx/0x85fd02dd919213773d969ba998aac04533750aa31fc987c0e31e6cd633465d04) | **`from` = `0xA83850aB…EA77`** — the Dynamic wallet, not our key |
+| **Dynamic** | It was that wallet's first-ever tx | [`0xd96b57f6…c8c9e1`](https://sepolia.basescan.org/tx/0xd96b57f60add3852d684676343a0528947f380b9fdea65d85661f1b473c8c9e1) | `nonce = 0` from the same address |
+| **Runtime** | Reputation attestation carries no PII | [`0xd546a412…cdef8`](https://sepolia.basescan.org/tx/0xd546a412a54646441b33990c3bd91854e6fe65d04ee97ca7eb1a73979c7cdef8) | Input is `subject` / `kind` / `evidenceHash` — three hashes, no name, no ID |
+
+That Dynamic `from` field is the whole claim. A local private key cannot produce it.
+
+### What works on the hosted URL
+
+Grant → run the pipeline → selective disclosure, both capability denials, the
+Uniswap leg, the on-chain attestation, `/lender` reading chain-only, then Revoke
+blocking the run. Every step is labeled Simulated or Live on screen.
+
+### What is local-only, and why
+
+**Dynamic MPC signing does not run on the hosted deploy.** `@dynamic-labs-wallet/node`
+ships MPC binaries for linux/macos only, and the signer holds key shares that are
+gitignored and never deployed — putting them in a hosting env var would be the
+wrong call. So the hosted app reports `signer: "local_viem"` and says so on screen.
+**It never claims MPC it cannot currently perform.** The signatures in the table
+above already happened; the explorer is the receipt.
+
+To reproduce it yourself (Linux, or Windows + WSL):
+
+```bash
+npm run mpc:serve   # sidecar on 127.0.0.1:18787
+npm run mpc:sign    # one signature -> .data/dynamic-mpc-proof.json
+```
+
+`mpc:sign` prints the tx hash. Check `from` on the explorer — it is the Dynamic
+wallet. With `mpc:serve` running, the full app run signs through it too, and the
+authority chip flips to "Grant/Revoke governs Dynamic MPC wallet … which signs on-chain."
+
+### What we are not claiming
+
+No fiat moves. No bank API. No money transmission. The licensed-partner leg is
+`MockLicensedPartner` and is labeled **SIMULATED** everywhere it appears — that is a
+deliberate legal boundary, not an unfinished feature. Full ledger: [`MOCKS.md`](MOCKS.md).
+
+---
+
 ## What is LIVE vs SIMULATED
 
 Statuses match [`MOCKS.md`](MOCKS.md) exactly. Every LIVE row there has a tx hash or file+line.

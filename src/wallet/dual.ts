@@ -42,34 +42,61 @@ export function getExecutionPrivateKey(): Hex {
   return normalizePk(raw);
 }
 
+/** Survives a read-only filesystem (Vercel): key stays in memory for the process. */
+let memoryProofKey: Hex | null = null;
+
 export function getProofPrivateKey(): Hex {
   if (process.env.PROOF_AGENT_PRIVATE_KEY) {
     return normalizePk(process.env.PROOF_AGENT_PRIVATE_KEY);
   }
-  mkdirSync(join(process.cwd(), ".data"), { recursive: true });
-  if (existsSync(PROOF_KEY_FILE)) {
-    return normalizePk(readFileSync(PROOF_KEY_FILE, "utf8").trim());
+  if (memoryProofKey) return memoryProofKey;
+  try {
+    mkdirSync(join(process.cwd(), ".data"), { recursive: true });
+    if (existsSync(PROOF_KEY_FILE)) {
+      return normalizePk(readFileSync(PROOF_KEY_FILE, "utf8").trim());
+    }
+  } catch {
+    // read-only filesystem — fall through to an ephemeral key
   }
   const generated = generatePrivateKey();
-  writeFileSync(PROOF_KEY_FILE, generated, "utf8");
+  memoryProofKey = generated;
+  try {
+    writeFileSync(PROOF_KEY_FILE, generated, "utf8");
+  } catch {
+    // Vercel: the proof-agent wallet is ephemeral. It signs nothing on-chain;
+    // it only needs to be a distinct address from the execution agent.
+  }
   return generated;
 }
 
 export function getDualWallets(): DualWalletStore {
-  mkdirSync(join(process.cwd(), ".data"), { recursive: true });
+  try {
+    mkdirSync(join(process.cwd(), ".data"), { recursive: true });
+  } catch {
+    // read-only filesystem (Vercel) — addresses are still derivable
+  }
   const execution = privateKeyToAccount(getExecutionPrivateKey());
   let proof = privateKeyToAccount(getProofPrivateKey());
   if (proof.address.toLowerCase() === execution.address.toLowerCase()) {
     const regenerated = generatePrivateKey();
-    writeFileSync(PROOF_KEY_FILE, regenerated, "utf8");
+    memoryProofKey = regenerated;
+    try {
+      writeFileSync(PROOF_KEY_FILE, regenerated, "utf8");
+    } catch {
+      // ephemeral — see getProofPrivateKey
+    }
     proof = privateKeyToAccount(regenerated);
   }
   const store: DualWalletStore = {
     proof: { address: proof.address },
     execution: { address: execution.address },
-    note: "local_viem dual wallets — Dynamic Neon unsupported on win32",
+    note: "local_viem dual wallets (execution key signs swap + attestation)",
   };
-  writeFileSync(STORE, JSON.stringify(store, null, 2));
+  try {
+    writeFileSync(STORE, JSON.stringify(store, null, 2));
+  } catch {
+    // Vercel: nothing downstream reads this file when the call succeeds
+  }
   return store;
 }
 

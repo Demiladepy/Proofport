@@ -230,9 +230,20 @@ export async function runOrchestrator(
     output: mpc,
   });
 
-  const pay = await payComplianceCheck(
-    process.env.PROOFPORT_BASE_URL ?? "http://localhost:3000",
-  );
+  // A wrong PROOFPORT_BASE_URL (e.g. localhost on a hosted deploy) makes this
+  // fetch throw. That is a config fault, not a reason to kill the whole run.
+  let pay: unknown;
+  try {
+    pay = await payComplianceCheck(
+      process.env.PROOFPORT_BASE_URL ?? "http://localhost:3000",
+    );
+  } catch (err) {
+    pay = {
+      ok: false,
+      error: err instanceof Error ? err.message : String(err),
+      note: "x402 loop unreachable — check PROOFPORT_BASE_URL points at this deployment",
+    };
+  }
   toolCalls.push({
     toolName: "pay_x402",
     agent: "execution",
